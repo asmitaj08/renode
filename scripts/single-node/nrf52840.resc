@@ -5,6 +5,8 @@ using sysbus
 
 mach create
 machine LoadPlatformDescription @platforms/cpus/nrf52840.repl
+python "print '******* Hiiii'"
+:python cpu SetHookAtBlockBegin "print '***Execution of a code block has started'"
 
 $bin?=@https://dl.antmicro.com/projects/renode/renode-nrf52840-zephyr_shell_module.elf-gf8d05cf-s_1310072-c00fbffd6b65c6238877c4fe52e8228c2a38bf1f
 
@@ -12,6 +14,15 @@ showAnalyzer uart0
 
 macro reset
 """
+    python "print '******* Hello'"
     sysbus LoadELF $bin
+    python "print '*** Loaded ELF'"
+    :cpu SetHookAtBlockBegin "print '***Execution of a code block has started'"
+    : cpu SetHookAtBlockBegin "print ('PC val : '+ str(self.PC))"
+    cpu SetHookAtBlockBegin " "
+  
+
+
+
 """
 runMacro $reset
