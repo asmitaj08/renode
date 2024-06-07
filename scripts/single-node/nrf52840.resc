@@ -8,8 +8,8 @@ machine LoadPlatformDescription @platforms/cpus/nrf52840.repl
 python "print '******* Hiiii'"
 :python cpu SetHookAtBlockBegin "print '***Execution of a code block has started'"
 
-$bin?=@https://dl.antmicro.com/projects/renode/renode-nrf52840-zephyr_shell_module.elf-gf8d05cf-s_1310072-c00fbffd6b65c6238877c4fe52e8228c2a38bf1f
-
+: $bin?=@https://dl.antmicro.com/projects/renode/renode-nrf52840-zephyr_shell_module.elf-gf8d05cf-s_1310072-c00fbffd6b65c6238877c4fe52e8228c2a38bf1f
+$bin?=@/media/asmita/224870c0-ff7f-4009-9ea0-79854d3c355a/nrfSDK/DeviceDownload/nRF5_SDK_17.1.0_ddde560/examples/peripheral/uart/pca10056/blank/armgcc/_build/nrf52840_xxaa.out
 showAnalyzer uart0
 
 macro reset

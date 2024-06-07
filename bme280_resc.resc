@@ -1,0 +1,10 @@
+using sysbus
+mach create "stm32"
+
+# Load CPU configuration
+machine LoadPlatformDescription @platforms/cpus/stm32l072.repl
+machine LoadPlatformDescriptionFromString "bme280: I2C.BME280 @ i2c1 0x76"
+
+sysbus LoadELF @https://dl.antmicro.com/projects/renode/b_l072z_lrwan1--zephyr-bme280_test.elf-s_649120-15b7607a51b50245f4500257c871cd754cfeca5a
+
+showAnalyzer usart2
