@@ -63,8 +63,10 @@ namespace Antmicro.Renode.PlatformDescription
         {
             try
             {
+                // Console.WriteLine("*****Inside ProcessInner");
                 ValidatePreMerge(file, source, "");
                 var mergedEntries = variableStore.GetMergedEntries();
+                // Console.WriteLine($"****Inside ProcessInner, merged entries : {mergedEntries}");
                 foreach(var entry in mergedEntries)
                 {
                     ValidateEntryPostMerge(entry);
@@ -73,6 +75,7 @@ namespace Antmicro.Renode.PlatformDescription
                 var sortedForCreation = SortEntriesForCreation(mergedEntries);
                 foreach(var entry in sortedForCreation)
                 {
+                    // Console.WriteLine($"****Inside ProcessInner, entry sorted for creation : {entry}");
                     CreateFromEntry(entry);
                 }
 
@@ -86,6 +89,7 @@ namespace Antmicro.Renode.PlatformDescription
                 var entriesToRegister = sortedForRegistration.Where(x => x.RegistrationInfos != null);
                 do
                 {
+                    // Console.WriteLine($"****Inside ProcessInner, entry to register : {entriesToRegister}");
                     entriesToRegister = RegisterFromEntries(entriesToRegister);
                 } while(entriesToRegister.Any());
 
