@@ -23,7 +23,7 @@ ${MULTICORE_ZYNQ_7000}=     SEPARATOR=
 ...  ${SPACE*4}frequency: 667000000                             ${\n}
 ...                                                             ${\n}
 ...  gic:                                                       ${\n}
-...  ${SPACE*4}\[2-3\] -> cpu1@\[0-1\]                          ${\n}
+...  ${SPACE*4}\[4-5\] -> cpu1@\[0-1\]                          ${\n}
 ...                                                             ${\n}
 ...  slcr:                                                      ${\n}
 ...  ${SPACE*4}cpu1: cpu1                                       ${\n}
@@ -41,9 +41,9 @@ Create Machine
     Execute Command                 ttc1 Frequency 33333333
 
     # Setup CPUs
-    Execute Command                 cpu SetRegisterUnsafe 0 0x000
-    Execute Command                 cpu SetRegisterUnsafe 1 0xD32 # processor variant (cortex-a9)
-    Execute Command                 cpu SetRegisterUnsafe 2 0x100 # device tree address
+    Execute Command                 cpu SetRegister 0 0x000
+    Execute Command                 cpu SetRegister 1 0xD32 # processor variant (cortex-a9)
+    Execute Command                 cpu SetRegister 2 0x100 # device tree address
     Execute Command                 cpu1 IsHalted true
 
     Execute Command                 sysbus LoadELF @${URL}/zynq-interface-tests-vmlinux-s_14142952-ab5cd7445f31414fcbf8c79d49d737c669034ef2

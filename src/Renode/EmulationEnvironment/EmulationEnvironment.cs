@@ -113,6 +113,7 @@ namespace Antmicro.Renode.EmulationEnvironment
         [PostDeserialization]
         private void InitSensorDelegates()
         {
+            Console.WriteLine("^^^^ EmulationEnvironment - InitSensorDelegates");
             sensorValueAndUpdateDelegates = new Dictionary<Type, SensorValueAndUpdateDelegate>()
             {
                 { typeof(ITemperatureSensor), new SensorValueAndUpdateDelegate() { Setter = (ISensor sensor, decimal value) => ((ITemperatureSensor)sensor).Temperature = value } },

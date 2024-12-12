@@ -1,8 +1,9 @@
 *** Variables ***
+${URI}                              @https://dl.antmicro.com/projects/renode
 ${UART}                             sysbus.uart
-${CPU_IBEX_NATIVE_LINUX}            @https://dl.antmicro.com/projects/renode/verilated-ibex--libVtop-s_2214528-ebb048cb40ded91b7ddce15a4a9c303f18f36998
-${CPU_IBEX_NATIVE_WINDOWS}          @https://dl.antmicro.com/projects/renode/verilated-ibex--libVtop.dll-s_3253532-6f580a2d9bf4f525d5e5e6432d0cb1ff4efa9c75
-${CPU_IBEX_NATIVE_MACOS}            @https://dl.antmicro.com/projects/renode/verilated-ibex--libVtop.dylib-s_329984-1446a5b2d8a92b894bf1b78d16c30cd443c28527
+${CPU_IBEX_NATIVE_LINUX}            ${URI}/libVcpu_ibex-Linux-x86_64-10267006380.so-s_2224472-d6ea2673d9e1f9a912f7cd96fcc8c0efdff937be
+${CPU_IBEX_NATIVE_WINDOWS}          ${URI}/libVcpu_ibex-Windows-x86_64-10267006380.dll-s_3392612-4aa33470a0038709c264745daa170a8cee95a76e
+${CPU_IBEX_NATIVE_MACOS}            ${URI}/libVcpu_ibex-macOS-x86_64-10267006380.dylib-s_316064-e60c296740d38ca6e8e4811dd98309ba6d6ca7e2
 
 *** Keywords ***
 Create Machine
@@ -16,9 +17,7 @@ Create Machine
     Execute Command                 $c_example=@https://dl.antmicro.com/projects/renode/verilated-ibex--c_example.elf-s_5956-ea5ae45679b4070cd21933b9602bbcfd80302c93
     Execute Command                 showAnalyzer ${UART}
     Execute Command                 sysbus LoadELF $c_example
-    Execute Command                 cpu ExecutionMode SingleStepBlocking
     Create Terminal Tester          ${UART}
-    Start Emulation
 
 Check Register By Name
     [Arguments]                     ${register}     ${x}
@@ -29,7 +28,7 @@ Check Register By Name
 
 Check Register
     [Arguments]                     ${register}     ${x}
-    ${value}=  Execute Command      cpu GetRegisterUnsafe ${register}
+    ${value}=  Execute Command      cpu GetRegister ${register}
     ${valuen}=  Convert To Integer  ${value}
     ${xn}=  Convert To Integer      ${x}            16
     Should Be True                  ${valuen} == ${xn}

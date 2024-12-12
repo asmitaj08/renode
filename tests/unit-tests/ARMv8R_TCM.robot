@@ -18,7 +18,7 @@ ${PLAT}                             SEPARATOR=\n  """
 ...
 ...                                 gic: IRQControllers.ARM_GenericInterruptController @ {
 ...                                 ${SPACE*4}${SPACE*4}sysbus new Bus.BusMultiRegistration { address: 0x6E00000; size: 0x10000; region: \"distributor\" };
-...                                 ${SPACE*4}${SPACE*4}sysbus new Bus.BusMultiRegistration { address: 0x6E10000; size: 0x20000; region: \"redistributor\" }
+...                                 ${SPACE*4}${SPACE*4}sysbus new IRQControllers.ArmGicRedistributorRegistration { attachedCPU: cpu; address: 0x6E10000 }
 ...                                 ${SPACE*4}}
 ...                                 ${SPACE*4}\[0-1] -> cpu@[0-1]
 ...                                 ${SPACE*4}supportsTwoSecurityStates: false
@@ -38,12 +38,12 @@ Get System Register As Int
     [Arguments]                     ${reg_name}
     ${as_str}=                      Execute Command  cpu GetSystemRegisterValue ${reg_name}
     ${as_int}=                      Convert To Integer  ${as_str}
-    [return]                        ${as_int}
+    RETURN                          ${as_int}
 
 Get Register Field
     [Arguments]                     ${int_value}  ${start_offset}  ${mask}
     ${field_val}=                   Evaluate  ((${int_value} >> ${start_offset}) & ${mask})
-    [return]                        ${field_val}
+    RETURN                          ${field_val}
 
 Field Should Have Correct Value
     [Arguments]                     ${register_name}  ${field_offset}  ${field_mask}  ${expected_value}  ${error_message}

@@ -1,5 +1,5 @@
 *** Variables ***
-${bin_out_signature}=                           ReTrace\x02
+${bin_out_signature}=                           ReTrace\x04
 ${triple_and_model}=                            riscv32 rv32imacv
 
 *** Keywords ***
@@ -23,7 +23,6 @@ Create Machine RISC-V 64-bit
         Execute Command                             machine LoadPlatformDescriptionFromString "mem: Memory.MappedMemory @ sysbus ${pc_hex} { size: 0x40000 }"
     END
 
-    Execute Command                             sysbus.cpu ExecutionMode SingleStepBlocking
     Execute Command                             sysbus.cpu PC ${pc_hex}
 
 Create Machine RISC-V 32-bit
@@ -35,8 +34,6 @@ Create Machine RISC-V 32-bit
     ELSE
         Execute Command                             machine LoadPlatformDescriptionFromString "mem: Memory.MappedMemory @ sysbus ${pc_hex} { size: 0x40000 }"
     END
-
-    Execute Command                             sysbus.cpu ExecutionMode SingleStepBlocking
 
 Trace The Execution On The Versatile Platform
     [Arguments]                                 ${trace_format}
@@ -62,7 +59,6 @@ Run And Trace Simple Program On RISC-V
     Execute Command                             sysbus WriteWord ${pc+4} 0x0001 cpu            # nop
     Execute Command                             sysbus WriteDoubleWord ${pc+6} 0x00310093 cpu  # addi x1, x2, 003
 
-    Start Emulation
     Execute Command                             sysbus.cpu Step 3
     Execute Command                             sysbus.cpu DisableExecutionTracing
     
@@ -84,7 +80,6 @@ Run RISC-V Program With Vcfg Instruction
     Execute Command                             sysbus WriteWord ${pc+4} 0x0001            # nop
     Execute Command                             sysbus WriteDoubleWord ${pc+6} 0x04007057  # vsetvli zero, zero, e8, m1, ta, mu
 
-    Start Emulation
     Execute Command                             sysbus.cpu Step 3
 
 Run RISC-V Program With Memory Access
@@ -95,7 +90,6 @@ Run RISC-V Program With Memory Access
     Execute Command                             sysbus WriteWord ${pc+4} 0xe537 cpu          # lui a0, 14
     Execute Command                             sysbus WriteDoubleWord ${pc+8} 0xb52023 cpu  # sw a1, 0(a0)
 
-    Start Emulation
     Execute Command                             sysbus.cpu Step 3
 
 Should Be Equal As Bytes
@@ -149,7 +143,7 @@ Should Be Able To Add Memory Accesses To The Trace In Binary Format On RISC-V
     Execute Command                             sysbus.cpu DisableExecutionTracing
 
     ${output_file}=                             Get Binary File  ${trace_filepath}
-    Length Should Be                            ${output_file}  69
+    Length Should Be                            ${output_file}  85
     Should Be Equal As Bytes                    ${output_file}[00:08]  ${bin_out_signature}
                                                 # [0]: pc_width; [1]: include_opcode
     Should Be Equal As Bytes                    ${output_file}[08:10]  \x04\x01
@@ -162,8 +156,12 @@ Should Be Able To Add Memory Accesses To The Trace In Binary Format On RISC-V
     Should Be Equal As Bytes                    ${output_file}[39:49]  \x04\x20\x00\x00\x04\x37\xe5\x00\x00\x00
                                                 # [0:4]: pc; [4]: opcode_length; [5:9]: opcode; [10]: additional_data_type = MemoryAccess
     Should Be Equal As Bytes                    ${output_file}[49:59]  \x08\x20\x00\x00\x04\x23\x20\xb5\x00\x01
-                                                # [0]: access_type; [1-9]: access_address; [10]: additional_data_type = None
+                                                # [0]: access_type; [1-9]: access_address
     Should Be Equal As Bytes                    ${output_file}[59:69]  \x03\x00\xe0\x00\x00\x00\x00\x00\x00\x00
+                                                # [0-7]: access_value
+    Should Be Equal As Bytes                    ${output_file}[69:77]  \x00\x03\x00\x00\x00\x00\x00\x00
+                                                # [0-7]: physical_access_address
+    Should Be Equal As Bytes                    ${output_file}[77:85]  \xe0\x00\x00\x00\x00\x00\x00\x00
 
 Should Dump 64-bit PCs As Binary On RISC-V
     [Arguments]                                 ${memory_per_cpu}
