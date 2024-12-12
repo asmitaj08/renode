@@ -2,12 +2,14 @@
 ${URI}                              @https://dl.antmicro.com/projects/renode
 ${BIN}                              murax--demo.elf-s_26952-7635fc30d0a3ed10c5b7cba622131b02d103f629
 ${UART}                             sysbus.uart
-${APB3UART_SOCKET_LINUX}            ${URI}/Vapb3uart-Linux-x86_64-1116123840-s_1604688-cb9962289b326d8defc1f7abb4b293a0e71ef8aa
-${APB3UART_SOCKET_WINDOWS}          ${URI}/Vapb3uart-Windows-x86_64-1116123840.exe-s_14823704-16aec151000300b42efc759f325438c2aad77d6e
-${APB3UART_SOCKET_MACOS}            ${URI}/Vapb3uart-macOS-x86_64-1116123840-s_214928-b8cbb2c12d4bf367cf10ff1ad5db45238ad06f08
-${APB3UART_NATIVE_LINUX}            ${URI}/libVapb3uart-Linux-x86_64-1116123840.so-s_2049920-1bca4e9cf7f3465907cea32e2be7a176b78d97f3
-${APB3UART_NATIVE_WINDOWS}          ${URI}/libVapb3uart-Windows-x86_64-1116123840.dll-s_14829076-0f58c94cf875cf6ebe442dbe24426c9308eef3e7
-${APB3UART_NATIVE_MACOS}            ${URI}/libVapb3uart-macOS-x86_64-1116123840.dylib-s_214864-267618c5da753aa7c1629db0a518aea39fdf6ad0
+
+// Binaries from https://github.com/antmicro/renode-verilator-integration, rev. f9b4139
+${APB3UART_SOCKET_LINUX}            @${URI}/Vapb3uart-Linux-x86_64-12048046797-s_1620824-032429468be6348953be4dee1dd58f207de7ef7a
+${APB3UART_SOCKET_WINDOWS}          @${URI}/Vapb3uart-Windows-x86_64-12048046797.exe-s_3231205-a5ad3f3c2fbae644ea6a60c137bf24f039a901a0
+${APB3UART_SOCKET_MACOS}            @${URI}/Vapb3uart-macOS-x86_64-12048046797-s_220504-de2a1d717d2b072c80946f3a8787b7b73c00d7a4
+${APB3UART_NATIVE_LINUX}            @${URI}/libVapb3uart-Linux-x86_64-12048046797.so-s_2075112-e22c7625fe6f6f43157c23e7100df3ae0612d4cf
+${APB3UART_NATIVE_WINDOWS}          @${URI}/libVapb3uart-Windows-x86_64-12048046797.dll-s_3237057-f212c564b7875695fa5de4059f66f64489e04c3c
+${APB3UART_NATIVE_MACOS}            @${URI}/libVapb3uart-macOS-x86_64-12048046797.dylib-s_220448-1fc9bbfc2c7403cf9560c2a752cc96369b92d2e0
 
 ${PLATFORM}=     SEPARATOR=
 ...  """                                                                        ${\n}

@@ -17,6 +17,7 @@ using Antmicro.Renode.Exceptions;
 using Antmicro.Renode.Logging;
 using Antmicro.Renode.Peripherals;
 using Antmicro.Renode.Peripherals.Bus;
+using Antmicro.Renode.Peripherals.Miscellaneous;
 using Antmicro.Renode.PlatformDescription.Syntax;
 using Antmicro.Renode.Utilities;
 using Antmicro.Renode.Utilities.Collections;
@@ -40,6 +41,7 @@ namespace Antmicro.Renode.PlatformDescription
             objectValueUpdateQueue = new Queue<ObjectValue>();
             objectValueInitQueue = new Queue<ObjectValue>();
             usingsBeingProcessed = new Stack<string>();
+            irqCombiners = new Dictionary<IrqDestination, IrqCombinerConnection>();
             PrepareVariables();
         }
 
@@ -73,10 +75,32 @@ namespace Antmicro.Renode.PlatformDescription
                 }
 
                 var sortedForCreation = SortEntriesForCreation(mergedEntries);
+                var irqConnectionCount = new Dictionary<IrqDestination, int>();
                 foreach(var entry in sortedForCreation)
                 {
                     // Console.WriteLine($"****Inside ProcessInner, entry sorted for creation : {entry}");
                     CreateFromEntry(entry);
+
+                    var irqs = entry.Attributes.OfType<IrqAttribute>()
+                        .SelectMany(attr => attr.Destinations)
+                        .Where(dest => dest.DestinationPeripheral != null);
+                    foreach(var irq in irqs)
+                    {
+                        var destinationPeripheralName = irq.DestinationPeripheral.Reference.Value;
+                        var destinationLocalIndex = irq.DestinationPeripheral.LocalIndex;
+                        var destinationIndex = irq.Destinations.Single().Ends.Single().Number;
+                        var key = new IrqDestination(destinationPeripheralName, destinationLocalIndex, destinationIndex);
+                        if(!irqConnectionCount.TryGetValue(key, out var count))
+                        {
+                            count = 0;
+                        }
+                        irqConnectionCount[key] = count + 1;
+                    }
+                }
+
+                foreach(var pair in irqConnectionCount.Where(pair => pair.Value > 1))
+                {
+                    irqCombiners[pair.Key] = new IrqCombinerConnection(new CombinedInput(pair.Value));
                 }
 
                 foreach(var entry in sortedForCreation)
@@ -116,6 +140,7 @@ namespace Antmicro.Renode.PlatformDescription
                 objectValueUpdateQueue.Clear();
                 objectValueInitQueue.Clear();
                 usingsBeingProcessed.Clear();
+                irqCombiners.Clear();
                 PrepareVariables();
             }
             machine.PostCreationActions();
@@ -163,7 +188,7 @@ namespace Antmicro.Renode.PlatformDescription
 
         private void PrepareVariables()
         {
-            // machine is always there and is not a peripheral 
+            // machine is always there and is not a peripheral
             variableStore.AddBuiltinOrAlreadyRegisteredVariable(Machine.MachineKeyword, machine);
             var peripherals = machine.GetRegisteredPeripherals().Where(x => !string.IsNullOrEmpty(x.Name)).Select(x => Tuple.Create(x.Peripheral, x.Name)).Distinct().ToDictionary(x => x.Item1, x => x.Item2);
             foreach(var peripheral in peripherals)
@@ -256,7 +281,7 @@ namespace Antmicro.Renode.PlatformDescription
                     message.AppendLine();
                     message.AppendFormat("Entry '{0}' at {1} references '{2}' at {3}.",
                                          pathElement.Previous.Entry.VariableName, GetFormattedPosition(pathElement.Previous.Entry.Type),
-                                         pathElement.Value.Value, GetFormattedPosition(pathElement.Value));                    
+                                         pathElement.Value.Value, GetFormattedPosition(pathElement.Value));
                 }
                 HandleError(cycleErrorType, pathElement.Entry, message.ToString(), false);
             }
@@ -438,11 +463,9 @@ namespace Antmicro.Renode.PlatformDescription
                         var ctors = FindUsableRegistrationPoints(possibleTypes, registrationPoint);
                         if(ctors.Count == 0)
                         {
-                            // fall back to the null registration point if possible and it makes sense for the registree
-                            // (do not allow it for bus peripherals as they need a bus registration)
+                            // fall back to the null registration point if possible
                             if(registrationPoint == null
-                                && possibleTypes.Contains(typeof(NullRegistrationPoint))
-                                && !typeof(IBusPeripheral).IsAssignableFrom(entryType))
+                                && possibleTypes.Contains(typeof(NullRegistrationPoint)))
                             {
                                 usefulRegistrationPointTypes.Add(typeof(NullRegistrationPoint));
                             }
@@ -484,7 +507,7 @@ namespace Antmicro.Renode.PlatformDescription
                     registrationInfo.RegistrationInterface = typeof(IPeripheralRegister<,>).MakeGenericType(new[] { usefulRegistreeTypes[0], usefulRegistrationPointTypes[0] });
                 }
             }
-                
+
             if(entry.Attributes == null)
             {
                 return;
@@ -613,7 +636,14 @@ namespace Antmicro.Renode.PlatformDescription
                 {
                     throw;
                 }
-                var message = string.Format("Exception was thrown during construction of {0}:{1}{2}", friendlyName, Environment.NewLine, constructionException.Message);
+
+                var exceptionMessage = new StringBuilder();
+                exceptionMessage.AppendLine(constructionException.Message);
+                for(var innerException = constructionException.InnerException; innerException != null; innerException = innerException.InnerException)
+                {
+                    exceptionMessage.AppendLine(innerException.Message);
+                }
+                var message = string.Format("Exception was thrown during construction of {0}:{1}{2}", friendlyName, Environment.NewLine, exceptionMessage);
                 HandleError(ParsingError.ConstructionException, responsibleSyntaxElement, message, false);
             }
             return result;
@@ -635,14 +665,14 @@ namespace Antmicro.Renode.PlatformDescription
             for(var i = 0; i < parameters.Length; i++)
             {
                 var parameter = parameters[i];
-                var attribute = attributes.SingleOrDefault(x => x.Name == parameter.Name);
+                var attribute = attributes.SingleOrDefault(x => ParameterNameMatches(x.Name, parameter, silent: true));
                 if(attribute == null)
                 {
                     FillDefaultParameter(ref parameterValues[i], parameter);
                     continue;
                 }
 
-                if(TryConvertSimpleValue(parameter.ParameterType, attribute.Value, out parameterValues[i]).ResultType == ConversionResultType.ConversionSuccessful)
+                if(TryConvertSimpleValue(parameter.ParameterType, attribute.Value, out parameterValues[i], silent: true).ResultType == ConversionResultType.ConversionSuccessful)
                 {
                     continue;
                 }
@@ -749,7 +779,7 @@ namespace Antmicro.Renode.PlatformDescription
                     var recoverableException = exception.InnerException as RecoverableException;
                     if(recoverableException == null)
                     {
-                        throw;   
+                        throw;
                     }
                     HandleError(ParsingError.PropertySettingException, attribute, string.Format("Exception was thrown when setting property '{0}'", attribute.Name), false);
                 }
@@ -766,16 +796,17 @@ namespace Antmicro.Renode.PlatformDescription
                         continue;
                     }
                     // at this moment all irq attributes are of simple type (i.e. a->b@c)
-                    var destination = variableStore.GetVariableFromReference(attribute.DestinationPeripheral.Reference).Value;
-                    
+                    var destinationReference = attribute.DestinationPeripheral.Reference;
+                    var destination = variableStore.GetVariableFromReference(destinationReference).Value;
+
                     IGPIO source;
                     IGPIOReceiver destinationReceiver;
-                    
+
                     var irqEnd = multiplexedAttributes.Sources.Single().Ends.Single();
                     if(irqEnd.PropertyName != null)
                     {
                         source = (IGPIO)GetGpioProperties(objectType).Single(x => x.Name == irqEnd.PropertyName).GetValue(objectToSetOn);
-                        
+
                         if(source == null)
                         {
                             HandleError(ParsingError.UninitializedSourceIrqObject, multiplexedAttributes,
@@ -789,11 +820,11 @@ namespace Antmicro.Renode.PlatformDescription
                         if(!connections.ContainsKey(irqEnd.Number))
                         {
                             HandleError(ParsingError.IrqSourcePinDoesNotExist, multiplexedAttributes,
-                                        $"{objectToSetOn} doesn't have IRQ {irqEnd.Number}.\nAvailable IRQs: {connections.Count}.", false);
+                                        $"{objectToSetOn} doesn't have IRQ {irqEnd.Number}.\nAvailable IRQs: {Misc.PrettyPrintCollection(connections.Keys)}.", false);
                             continue;
                         }
                         source = connections[irqEnd.Number];
-                        
+
                         if(source == null)
                         {
                             HandleError(ParsingError.UninitializedSourceIrqObject, multiplexedAttributes,
@@ -801,17 +832,32 @@ namespace Antmicro.Renode.PlatformDescription
                             continue;
                         }
                     }
-                    
-                    if(attribute.DestinationPeripheral.LocalIndex.HasValue)
+
+                    var localIndex = attribute.DestinationPeripheral.LocalIndex;
+                    var index = attribute.Destinations.Single().Ends.Single().Number;
+                    if(localIndex.HasValue)
                     {
-                        destinationReceiver = ((ILocalGPIOReceiver)destination).GetLocalReceiver(attribute.DestinationPeripheral.LocalIndex.Value);
+                        destinationReceiver = ((ILocalGPIOReceiver)destination).GetLocalReceiver(localIndex.Value);
                     }
                     else
                     {
                         destinationReceiver = (IGPIOReceiver)destination;
                     }
-                    
-                    source.Connect(destinationReceiver, attribute.Destinations.Single().Ends.Single().Number);
+
+                    var key = new IrqDestination(destinationReference.Value, localIndex, index);
+                    if(irqCombiners.TryGetValue(key, out var combinerConnection))
+                    {
+                        // Connect the first one to the old destination
+                        var combiner = combinerConnection.Combiner;
+                        if(combinerConnection.nextConnectionIndex == 0)
+                        {
+                            combiner.OutputLine.Connect(destinationReceiver, index);
+                        }
+                        destinationReceiver = combiner;
+                        index = combinerConnection.nextConnectionIndex++;
+                    }
+
+                    source.Connect(destinationReceiver, index);
                 }
             }
         }
@@ -990,7 +1036,7 @@ namespace Antmicro.Renode.PlatformDescription
                             HandleError(ParsingError.IrqDestinationDoesNotExist, attribute.DestinationPeripheral,
                                         string.Format("Irq destination '{0}' does not exist.", attribute.DestinationPeripheral.Reference.Value), true);
                         }
-                        
+
                         if(attribute.DestinationPeripheral.LocalIndex.HasValue && !typeof(ILocalGPIOReceiver).IsAssignableFrom(irqDestinationVariable.VariableType))
                         {
                             HandleError(ParsingError.NotLocalGpioReceiver, attribute.DestinationPeripheral,
@@ -1002,13 +1048,13 @@ namespace Antmicro.Renode.PlatformDescription
                         // irq -> none case
                         irqDestinationVariable = null;
                     }
-                    
+
                     if(irqAttribute.Sources == null)
                     {
                         var gpioProperties = GetGpioProperties(objectType).ToArray();
                         if(gpioProperties.Length == 0)
                         {
-                            
+
                             HandleError(ParsingError.IrqSourceDoesNotExist, irqAttribute,
                                         string.Format("Type '{0}' does not contain any property of type GPIO.", objectType), false);
                         }
@@ -1046,7 +1092,7 @@ namespace Antmicro.Renode.PlatformDescription
                                             string.Format("Irq arity does not match. It is {0} on the left side and {1} on the right side.", leftArity, rightArity), false);
                             }
                         }
-                        
+
                         foreach(var source in irqAttribute.Sources)
                         {
                             foreach(var end in source.Ends)
@@ -1071,11 +1117,12 @@ namespace Antmicro.Renode.PlatformDescription
                             }
                         }
                     }
-                    
-                    if(irqDestinationVariable!= null && !typeof(IGPIOReceiver).IsAssignableFrom(irqDestinationVariable.VariableType))
+
+                    if(irqDestinationVariable != null &&
+                        !(typeof(IGPIOReceiver).IsAssignableFrom(irqDestinationVariable.VariableType) || typeof(ILocalGPIOReceiver).IsAssignableFrom(irqDestinationVariable.VariableType)))
                     {
                         HandleError(ParsingError.IrqDestinationIsNotIrqReceiver, attribute.DestinationPeripheral,
-                                    string.Format("Type '{0}' does not implement IGPIOReceiver and cannot be a destination of interrupts.", irqDestinationVariable.VariableType), false);
+                                    string.Format("Type '{0}' does not implement IGPIOReceiver or ILocalGPIOReceiver and cannot be a destination of interrupts.", irqDestinationVariable.VariableType), false);
                     }
                     return;
                 }
@@ -1089,7 +1136,7 @@ namespace Antmicro.Renode.PlatformDescription
 
             if(propertyInfo.GetSetMethod() == null)
             {
-                HandleError(ParsingError.PropertyNotWritable, attribute, string.Format("Property {0} does not have setter.", propertyInfo.Name), false);
+                HandleError(ParsingError.PropertyNotWritable, attribute, string.Format("Property {0} does not have a public setter.", propertyInfo.Name), false);
             }
 
             var propertyFriendlyName = string.Format("Property '{0}'", attribute.Name);
@@ -1237,7 +1284,7 @@ namespace Antmicro.Renode.PlatformDescription
             return ConversionResult.Success;
         }
 
-        private ConversionResult TryConvertSimpleValue(Type expectedType, Value value, out object result)
+        private ConversionResult TryConvertSimpleValue(Type expectedType, Value value, out object result, bool silent = false)
         {
             result = null;
 
@@ -1284,16 +1331,27 @@ namespace Antmicro.Renode.PlatformDescription
                 {
                     return new ConversionResult(ConversionResultType.ConversionUnsuccesful, ParsingError.TypeMismatch, string.Format(TypeMismatchMessage, expectedType));
                 }
-                var namespaceAndType = expectedType.Namespace.Split('.').Concat(new[] { expectedType.Name });
-                var givenReversedTypeAndNamespace = enumValue.TypeAndReversedNamespace;
 
-                // zip compares elements of the namespace from the end one by one and looks for the first difference
-                var error = givenReversedTypeAndNamespace.Zip(namespaceAndType.Reverse(), (first, second) => first != second ? Tuple.Create(first, second) : null).FirstOrDefault(x => x != null);
-                if(error != null)
+                // Compare types first as enum's type may use an alias
+                if(!TypeNameMatches(enumValue.TypeName, expectedType, silent))
                 {
                     return new ConversionResult(ConversionResultType.ConversionUnsuccesful, ParsingError.EnumMismatch,
-                                                $"Enum namespace or type mismatch, expected '{error.Item2}' instead of '{error.Item1}'.");
+                                                $"Enum type mismatch, expected '{expectedType.Name}' instead of '{enumValue.TypeName}'.");
                 }
+
+                var expectedNamespace = expectedType.Namespace.Split('.');
+                var givenNamespace = enumValue.ReversedNamespace;
+
+                // Compare namespaces
+                foreach(var names in givenNamespace.Zip(expectedNamespace.Reverse(), (first, second) => Tuple.Create(first, second)))
+                {
+                    if(names.Item1 != names.Item2)
+                    {
+                        return new ConversionResult(ConversionResultType.ConversionUnsuccesful, ParsingError.EnumMismatch,
+                                                    $"Enum namespace mismatch, expected '{names.Item2}' instead of '{names.Item1}'.");
+                    }
+                }
+
                 if(!SmartParser.Instance.TryParse(enumValue.Value, expectedType, out result))
                 {
                     return new ConversionResult(ConversionResultType.ConversionUnsuccesful, ParsingError.EnumMismatch,
@@ -1362,7 +1420,14 @@ namespace Antmicro.Renode.PlatformDescription
 
                 foreach(var argument in ctor.GetParameters())
                 {
-                    var correspondingAttribute = attributes.SingleOrDefault(x => x.Name == argument.Name);
+                    var correspondingAttributes = attributes.Where(x => ParameterNameMatches(x.Name, argument));
+                    if(correspondingAttributes.Count() > 1)
+                    {
+                        HandleError(ParsingError.AliasedAndNormalArgumentName, responsibleObject,
+                                    "Ambiguous choice between aliased and normal argument name:" + Environment.NewLine +
+                                    String.Join(Environment.NewLine, correspondingAttributes.Select(x => x.Name + ": " + x.Value)), true);
+                    }
+                    var correspondingAttribute = correspondingAttributes.FirstOrDefault();
                     if(correspondingAttribute == null)
                     {
                         object defaultValue = null;
@@ -1481,6 +1546,36 @@ namespace Antmicro.Renode.PlatformDescription
                 value = machine;
                 return true;
             }
+            return false;
+        }
+
+        private bool ParameterNameMatches(string given, ParameterInfo info, bool silent = false)
+        {
+            return NameOrAliasMatches(given, info.Name, "parameter", info.GetCustomAttribute<NameAliasAttribute>(), silent);
+        }
+
+        private bool TypeNameMatches(string given, Type type, bool silent = false)
+        {
+            return NameOrAliasMatches(given, type.Name, "type", type.GetCustomAttribute<NameAliasAttribute>(), silent);
+        }
+
+        private bool NameOrAliasMatches(string given, string name, string typeClass, NameAliasAttribute alias, bool silent = false)
+        {
+            if(given == name)
+            {
+                return true;
+            }
+
+            if(alias != null && alias.Name == given)
+            {
+                if(!silent && alias.WarnOnUsage)
+                {
+                    Logger.Log(LogLevel.Warning, "Using alias '{0}' for {1} '{2}'", alias.Name, typeClass, name);
+                }
+
+                return true;
+            }
+
             return false;
         }
 
@@ -1610,6 +1705,7 @@ namespace Antmicro.Renode.PlatformDescription
         private readonly Queue<ObjectValue> objectValueUpdateQueue;
         private readonly Queue<ObjectValue> objectValueInitQueue;
         private readonly Stack<string> usingsBeingProcessed;
+        private readonly Dictionary<IrqDestination, IrqCombinerConnection> irqCombiners;
 
         private static readonly HashSet<Type> NumericTypes = new HashSet<Type>(new []
         {
@@ -1655,6 +1751,33 @@ namespace Antmicro.Renode.PlatformDescription
             public ReferenceValueStack Previous { get; private set; }
             public ReferenceValue Value { get; private set; }
             public Entry Entry { get; private set; }
+        }
+
+        private struct IrqDestination
+        {
+            public IrqDestination(string peripheralName, int? localIndex, int index)
+            {
+                PeripheralName = peripheralName;
+                LocalIndex = localIndex;
+                Index = index;
+            }
+
+            public readonly string PeripheralName;
+            public readonly int? LocalIndex;
+            public readonly int Index;
+        }
+
+        private struct IrqCombinerConnection
+        {
+            public IrqCombinerConnection(CombinedInput combiner)
+            {
+                Combiner = combiner;
+                nextConnectionIndex = 0;
+            }
+
+            public int nextConnectionIndex;
+
+            public readonly CombinedInput Combiner;
         }
     }
 }

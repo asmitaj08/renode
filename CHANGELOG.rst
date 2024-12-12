@@ -3,6 +3,574 @@ Renode changelog
 
 This document describes notable changes to the Renode framework.
 
+1.15.3 - 2024.09.17
+-------------------
+
+Added and improved architecture support:
+
+* fixed Arm MPU skipping access checks for MPU regions sharing a page with a background region
+* FPU dirty flag is now set on all FPU load instructions for RISC-V
+* fixed Arm PMSAv8 not checking for domains not being page aligned
+* RISC-V MTVAL register now contains the invalid instruction after illegal instruction exception
+* Arm SRS (Store Return State) instruction now saves onto stack SPSR instead of masked CPSR
+* improved support for x86-64, verified with Zephyr
+* added SMEPMP extension stub for RISC-V
+* added ability to configure usable bits in RISC-V PMPADDR registers
+* fixed runtime configurability of the RISC-V MISA registers
+* fixed RISC-V PMPCFG semantics from WIRI to WARL
+* fixed decoding of C.ADDI4SPN in RISC-V
+* fixed behavior of RORIW, RORI and SLLI.UW RISC-V instructions
+* changed MSTATUS RISC-V CSR to be more responsive to the presence of User and Supervisor modes
+
+Added and improved platform descriptions:
+
+* NXP MR-CANHUBK3
+* NXP S32K388
+* NXP S32K118
+* RI5CY
+* Renesas r7fa8m1a
+* Renesas DA14592
+* STM32H743
+* x86-64 ACRN
+
+Added demos and tests:
+
+* Zephyr running hello_world demo on x86-64 ACRN
+* ZynqMP demo showcasing two way communication between Cortex-A53 running Linux and Cortex-R5 running OpenAMP echo sample
+
+Added features:
+
+* Socket Manager mechanism, organizing socket management in a single entity
+* test real-time timeout handling mechanism in Robot
+* GPIO events support for the External Control API
+* Zephyr Mode support for Arm, Arm-M, SPARC, x86 and Xtensa
+* disassembling support for x86-64 architecture
+* support for bus access widths other than DoubleWord for DPI integration of APB3
+* support for overriding a default implementation of the verilated UART model
+
+Changed:
+
+* improved `renesas-segger-rtt.py` helper
+* Renode logs a warning instead of crashing when HDL co-simulated block reports an error
+* improved `guest cache` tool results readability
+
+Fixed:
+
+* PulseGenerator behavior when `onTicks == offTicks`
+* External Control API GetTime command returning incorrect results
+* SystemC integration crashing when initializing GPIO connections
+* USB Speed value reported in USB/IP device descriptor
+* USB endpoints with the same number but opposite direction not being distinguished
+* a potential crash due to ``OverflowException`` when stopping the emulation
+* checking address range when mapping memory ranges in TranslationCPU
+* configuration descriptor parsing in USBIPServer
+* fatal TCG errors in some cases of invalid RISC-V instructions
+* handling registration of regions not defined by peripherals
+* handling registration of regions with unpaired access method
+* incorrect sequence number in USBIP setup packet reply
+* SD card reset condition
+* starting GDB stub on platforms containing CPUs not supporting GDB
+* infinite loop on debug exception with an interrupt pending
+* simulation elements unpausing after some Monitor commands
+
+Added peripheral models:
+
+* Arm CoreLink Network Interconnect
+* LPC Clock0
+* RenesasDA14 GeneralPurposeRegisters
+* STM32 SDMMC
+* Synopsys SSI
+
+Improvements in peripherals:
+
+* Arm Signals Unit
+* CAES ADC
+* Gaisler FaultTolerantMemoryController
+* LPC USART
+* MiV CoreUART
+* NXP LPUART
+* RenesasDA Watchdog
+* RenesasDA14 ClockGenerationController
+* RISC-V Platform Level Interrupt Controller
+* STM32 DMA
+* ZynqMP IPI
+* ZynqMP Platform Management Unit
+
+1.15.2 - 2024.08.18
+-------------------
+
+Added and improved architecture support:
+
+* support for Core-Local Interrupt Controller (CLIC) in RISC-V, enabling several flavors of the (not yet ratified) RISC-V Fast Interrupts specification
+* various improvements to x86 architecture support, including virtual address translation fixes
+* RISC-V custom instructions now have to follow length encoding patterns, as specified in the ISA manual (section 1.2 Instruction Length Encoding)
+* fixed fetching RISC-V instruction with PMP boundary set exactly after the instruction
+* fixed setting MPP after mret on RISC-V platforms without user privilege level
+* fixed RISC-V PMPCFG CSR operations not respecting the ``write any, read legal`` semantics
+* fixed RISC-V fcvt.wu.s, fcvt.lu.s and vmulh.vv instructions implementation
+
+Added and improved platform descriptions:
+
+* NPCX9 platform with improved bootrom implementation
+* Chip revision tags in the Renesas DA14592 platform
+* Fixed MPU regions configuration in Cortex-R8 SMP platform description
+* Nuvoton NPCX9M6F EVB
+* Microchip Mi-V, with correct Privileged Architecture version
+
+Added peripheral models:
+
+* MAX32655 UART
+* NEORV32 Machine System Timer
+* NEORV32 UART
+* KB1200 UART
+* RISC-V Core-Local Interrupt Controller
+* STM32WBA CRC
+* VeeR EL2 RISC-V core with custom CSRs
+
+Added demos and tests:
+
+* HiRTOS sample running on a dual-core Cortex-R52
+* Xen hypervisor running on Cortex-R52 with Zephyr payload
+* remoteproc demo on ZynqMP, with Linux running on Cortex-A loading Zephyr to Cortex-R
+* NPCX9 Zephyr-based tests for GPIO and I2C
+* synthetic tests for RISC-V Core-Local Interrupt Controller
+* RISC-V Core-Local Interrupt Controller tests based on riscv-arch-test
+* Zephyr bluetooth HR demo running on 4 nRF52840 in host / controller split communicating with HCI UART
+* Zephyr running hello_world sample on X86
+* regression test for custom RISC-V instructions not following the length encoding pattern
+
+Added features:
+
+* CPU cache analysis tool using the ExecutionTracer interface
+* initial GPIO support via External Control API
+* Wait For Lines On Uart keyword for Robot Framework for multiline matching
+* ability to specify aliases for names of constructor parameters in REPL, simplifying adaptation to API changes
+* ability to specify implemented privilege levels on RISC-V processors
+* initial SMC handling for ARMv8 CPUs
+* ability to load snapshots (.save files) from CLI
+* mechanism for enabling sysbus transaction translations for unimplemented widths in runtime
+* network based logging backend
+* option to assert match on the next line in UART keywords for Robot Framework
+* remapping exception vector in Arm CPUs having neither VBAR nor VTOR
+* support for declaring clusters of cores in REPL files
+* support for loading gzip compressed emulation snapshots
+* NetMQ and AsyncIO integration
+
+Changed:
+
+* ExecutionTracer logs additional physical address on memory access when MMU translation is involved
+* ExecutionTracer tracks values written to/read from memory if TrackMemoryAccesses parameter is used
+* added the ability to override build properties
+* added the ability to track memory accesses when address translation is active
+* External Control client \`run_for\` example can now progress time multiple times without reconnecting
+* machine by default disallows spawning a GdbServer with CPUs belonging to different architectures.
+* made user-configured $CC the default value for Compiler and LinkerPath and $AR for ArPath
+* paths encapsulated in quotes can handle names with whitespaces
+* paths in Monitor can be encapsulated in quotes in more contexts
+* improved precision of timer reconfiguration
+* translation library will attempt to expand its code buffer when running out of space
+* improved flexibility of parameter passing to registration points in REPL, as used by GIC
+* improved flexibility of the logLevel command
+* improved Renode pausing responsiveness when using TAP interface on Linux
+* improved performance of External Control API renode_run_for function
+* simplified per-core registration API in REPL files
+* renamed \`\`PrivilegeArchitecture\`\` to \`\`PrivilegedArchitecture\`\` on RISC-V
+* unified STM32 CRC peripherals so they use a single class configured with the STM32Series enum
+* co-simulated peripherals protocol on writes directed to system bus
+* MacOS now uses \`\`mono\`\` instead of \`\`mono64\`\` as a runner, which is equivalent since Mono 5.2
+* time updates are now deferred when possible to improve performance
+* virtual time precision is now 1 nanosecond instead of 1 microsecond
+* limited unnecessary invalidations of memory for multicore platforms
+* CPU-specific peripheral registrations have now higher priority than the global ones
+* undefined AArch64 ID registers are now treated as RAZ
+
+Fixed:
+
+* initialization of VFP registers for Armv8 CPUs
+* support for building tlibs with clang
+* interruption of instructions block on precise pause
+* accessing RISC-V counter CSRs for lower privilege levels for privileged specification 1.10 and newer
+* Time Framework errors when handling halted CPUs
+* running renode and renode-test commands via symlinks
+* serialization of ARMv8-A CPUs
+* serialization of some complex classes
+* listing of registration points for peripherals registered at both cpu and sysbus
+* handling of watchpoints set at addresses above the 32-bit range
+* crashes when using both aliased attribute name and normal name at the same time
+* possible hang when disabling logging of peripheral accesses
+* handling of exclusive store/load instructions for ARMv7-R CPUs
+* handling of interrupting execution in GDB on multicore platforms in all-stop mode
+* allocating huge amount of memory for translation cache on CPU deserialization
+* invalid undefined instruction faults for Armv8 CPUs
+* GDB getting confused when receiving Ctrl-C on multicore platforms
+* LSM303 peripheral test
+* CS7034 \"specified version string does not conform to recommended format\" warning appearing when building
+* Vegaboard-RI5CY demo failing to boot
+* exception thrown on an empty message in log when failing a Robot test
+* linking and imports in the External Control library
+* nonstandard configuration byte when disabling Telnet line mode
+* printing skipped test status
+* version information not appearing correctly after running \`renode --help\`
+
+Improvements in peripherals:
+
+* Ambiq Apollo4 System Timer
+* Arm Generic Interrupt Controller
+* ARM Generic Timer
+* Arm Performance Monitoring Unit
+* Arm Snoop Control Unit
+* Arm CPUs
+* Arm Signal Unit
+* Gaisler APB UART
+* K6xF Multipurpose Clock Generator
+* KB1200 UART
+* LPC USART
+* Macronix MX25R
+* MAX32650 WDT
+* Mi-V Core Timer
+* MPFS SD controller
+* NEORV32 UART
+* NPCX MDMA
+* NPCX ITIM, including both 32 and 64-bit flavors of the peripheral
+* NPCX TWD
+* NPCX SMBus
+* NPCX UART
+* nRF52840 CLOCK
+* NVIC
+* Renesas RA6M5 SCI
+* RCAR UART
+* SAMD20 UART
+* SD card
+* STM32 UART
+* STM32 LTDC
+* STM32 CRC
+* STM32 Timer
+* STM32F4 Flash with added mass erase and sector erase commands
+* STM32L0 RCC model with added support for Low-power timer (LPTIM) reset
+* STM32WBA GPDMA
+* SynopsysDWCEthernetQualityOfService incorrectly resetting transmit/receive buffer position when suspending its DMA engine
+* VirtIO
+* Zynq7000 System Level Control Registers
+
+1.15.1 - 2024.06.14
+-------------------
+
+Added and improved architecture support:
+
+* improved support for SMP processing in Armv8 and Armv7
+* configuration signals for Arm cores
+* LOB extension (without tp variants) for Armv7
+* VSTRW instruction support from Armv8.1-M MVE
+* support for additional Arm CP14 and CP15 registers
+* Armv8 LDM (user) instruction will update registers predictably even when executing in System Mode, instead of being UNPREDICTABLE according to Arm documentation
+* basic support for Cortex-A5 CPU type
+* DCIMALL instruction for Aarch32 CPUs
+* IMP_CDBGDCI instruction for Cortex-R52 CPUs
+
+Added and improved platform descriptions:
+
+* timer interrupts configuration for STM32F4-based platforms
+* improvements to networking configuration for StarFive JH7100
+* improvements to Renesas R7FA2E1A9, R7FA2L1A, R7FA4M1A, R7FA6M5B, R7FA8M1A SoC
+* improvements to UT32M0R500 SoC
+* platform with example sensor connections for CK-RA6M5
+* multicore Cortex-R52 platform
+* multicore Cortex-A53 with GICv3 in SMP configuration
+* improvements to the Cortex-R52 platform
+* GIC architecture version selection for many Arm platforms
+* added Arm signal unit support for Cortex-R8 and multicore Cortex-R8 platforms
+* merged Zynq Ultrascale+ into a single platform with both Cortex-A and Cortex-R CPUs
+* updated peripherals registration for STM32F0, STM32F4, STM32F746, STM32G0, STM32H743, STM32L071, STM32L151, STM32L552, STM32WBA52 SoCs
+
+* Renesas CK-RA6M5 board
+* Beagle-V Fire, with Microchip's PolarFire SoC
+
+Added peripheral models:
+
+* Gaisler ADC
+* NPCX GPIO
+* NPCX SMBus
+* NXP OS Timer
+* Renesas DA SPI
+* Renesas RA IIC
+* Renesas DA14 GeneralRegisters
+* Renesas DA14 XTAL32MRegisters
+* S32K3XX EMAC
+* S32K3XX FlexCAN
+* S32K3XX FlexIO with SENT and UART endpoints
+* S32K3XX GMAC
+* S32K3XX Low Power IIC
+* STM32H7 Crypto Accelerator
+* STM32H7 QuadSPI
+* STM32WBA GP DMA
+* UT32 CAN
+* VirtIO Filesystem device
+* ZynqMP Inter Processor Interrupt controller
+* ZynqMP Platform Management Unit
+* ZMOD4410 and ZMOD4510 air quality sensors
+* AK09916 and AK09918 3-axis electronic compass sensors
+* generic configurable Pulse Generator block
+
+Added demos and tests:
+
+* I2C echo test for Renesas DA14592
+* addtional unit tests for CRCEngine
+* I2C mode tests for Renesas RA8M1 SCI
+* BeagleV-StarLight ethernet tests
+* serialization tests for Armv8-A and Armv8-R cores
+* Cortex-R8 Zephyr tests
+* configuration signals tests for Cortex-R8
+* NXP S32K388 Low Power SPI test
+* HiRTOS samples (including multicore) on Cortex-R52
+* Renesas RA6M5 platform tests including SCI SPI, ICM20948, HS3001, IIC
+* EXT2 filesystem Zephyr tests based on SiFive FU740
+* STM32H7 Nucleo test for CRYPTO and SPI
+* tests for GDB accessing peripheral space
+* regression tests for ARMv8 Security State and Exception Level after core initialization
+* VirtIO Filesystem directory sharing test
+* Zephyr SMP test for Cortex-R52
+* aws_cc test for the Renesas CK-RA6M5 board
+* machine log level test
+* range locking tests in sysbus.robot
+
+Added features:
+
+* mechanism for integrating Renode with SystemC simulations
+* VirtIO-based directory sharing with host OS
+* new GIC redistributor regions registration methods for multi-core platforms
+* CAN analyzer support in Wireshark integration
+* CPU-specific function names lookup support
+* ability to clear CPU-specific or global function names lookups
+* SENT protocol support
+* LIN protocol support
+* IADC interface for generic ADC control
+* support for specifying additional offset to function names addresses in lookups
+* locking sysbus accesses to specified ranges
+* easier access to externals in Python scripts via externals variable
+* external control API with C client library
+* integration with dts2repl tool
+* virtual CAN host integration via SocketCAN bridge
+* ability to control log level of the whole machine with the logLevel command
+* ability to specify Privileged Architecture Version 1.12 on RISC-V processors
+* optional CPU context in locking sysbus accesses to peripherals
+
+Fixed:
+
+* Migrant not keeping track of all child-parent connections in the Reflection mode
+* Arm PMSAv8 configuration using stale values in some circumstances
+* Armv7 CP15 registers - ADFSR, AIFSR, non-MP BP*, DC* and IC* registers
+* Armv7 and older memory barrier instructions and CP15 registers (DMB, DSB and DWB)
+* read accesses to write-only Aarch32 coprocessor registers
+* Armv7/Armv8 MPIDR register
+* breakpoints serialization and deserialization
+* calculation of target EL and interrupt masking for Armv8 Aarch32
+* crashes in certian register configurations for Armv8 Aarch32
+* FIQs being disabled with no way of enabling them for GICv3 and onwards
+* NA4 range end address calculation in RISC-V PMP
+* effective PMP configuration calculation in RISC-V when mstatus.MPRV is set
+* RISC-V vector load and store segment instructions
+* crashes when a breakpoint and a watchpoint trigger at the same instruction
+* RISC-V PMP NAPOT grain check implementation
+* TranslationCPU's CyclesPerInstruction changes during runtime not being automatically applied to ArmPerformanceMonitoringUnit's cycle counters
+* unmapping of memory segments
+* unregistering peripherals
+* valid Ethernet frames sometimes getting rejected due to CRC mismatch
+* virtual time advancing too far when pausing the emulation
+* CCSIDR for L1 data cache in Arm Cortex-R8
+* CCSIDR for L2 cache in Arm Cortex-R5/R8
+* renode-test --include behavior for NUnit test suites
+* atomic instructions handling when running multithreaded program on a single CPU machine
+* automatic 64-bit access translations on system bus
+* crashes on Cortex-M construction if NVIC is already attached to a different core
+* exclusive load/store instructions on Armv8
+* failures in monitor-tests.Should Pause Renode under certain conditions
+* invalid Asciinema generation if the UART output contains a backslash character
+* logging value written on an unhandled tag write
+* names of Arm TCM registers
+* pausing on SemihostingUart events in Xtensa CPUs
+* reporting thread ID as decimal number in GDB's query command - cpuId restricted to 32
+* selecting PMP access mode for RISC-V cores
+* serialization for Armv8-A and Armv8-R cores
+* suppressed SP and PC initialization on halted Cortex-M cores
+* cache selection in Armv7 and older CPUs, now verified with CLIDR when reading CCSIDR
+* precise pausing causing parts of the instruction to be executed twice
+* ARM MPU ignoring memory restriction check to the page that was previously accessed even if region/subregion permissions don't match
+* Armv8-R AArch32 executing in Secure State instead on Non-Secure
+* Armv8-R changing Security State, while it should never do so
+* Armv8 cores not propagating their Exception Level and Security State outside tlib correctly after creation
+* DMAEngine memory transactions with when not incrementing source or destination addresses
+* RISC-V BEXT instruction handling
+* RISC-V xRET instructions not changing status bits correctly
+* SocketServerProvider not closing correctly without any connected clients
+* detection of test failures which should be retried when renode-test's --retry option is used
+* handling peripheral accesses when debugging with GDB
+* initialization of PC and SP on leaving reset on Cortex-M
+* printing of possible values for invalid Enum arguments in Monitor commands
+* heterogeneous platforms handling in GDB
+* single step execution mode in Xtensa cores
+* variable expansion in Monitor
+
+
+Changed:
+
+* Terminal Tester delayed typing now relies on virtual time
+* removed AdvancedLoggerViewer plugin
+* improved TAP networking performance on Linux
+* reduced overhead of calling tlib exports
+* TranslationCPU's CyclesPerInstruction now accepts non-integer values
+* CPU Step call now automatically starts the emulation
+* upgraded Robot Framework to 6.1, to work with Python 3.12
+* renamed the ID property of Arm cores to ModelID
+* improved Arm core performance
+* improved logging performance if lower log levels are not enabled
+* added host memory barrier generation to TCG
+* actions delayed with machine.ScheduleAction can now execute as soon as the end of the current instructions block (it used to be quantum)
+* CPU's SingleStepBlocking and SingleStepNonBlocking ExecutionModes were replaced by SingleStep and emulation.SingleStepBlocking was added
+* blockOnStep was removed from StartGdbServer
+* single-step-based tests were refactored due to automatic start on Step and ExecutionMode changes
+
+Improvements in peripherals:
+
+* Andes AndeStarV5Extension.cs - Added Configuration and Crash Debug CSRs
+* Arm Generic Interrupt Controller, with changes to v1, v2 and v3 versions, focused on improving multicore support for both Armv7 and Armv8 platforms
+* Gaisler APBUART
+* Gaisler GPTimer
+* Gaisler Ethernet
+* Gaisler MIC
+* Kinetis LPUART
+* NPCX FIU
+* NPCX Flash
+* NXP LPSPI
+* Renesas RA8M1 SCI
+* Renesas DA I2C
+* Renesas DA Watchdog
+* Renesas DA14 DMA
+* Renesas RA6M5 SCI
+* Renesas DA DMABase
+* S32K3XX LowPowerInterIntegratedCircuit
+* SDCard
+* STM32 PWR
+* STM32F4 CRC
+* STM32H7 RCC
+* Synopsys DWCEthernetQualityOfService
+* Synopsys EthernetMAC
+* VirtIOBlockDevice, now based on VirtIO MMIO version v1.2
+* Xilinx IPI mailbox
+* BME280 sensor
+* ICM20948 sensor
+* SHT45 sensor
+
+
+1.15.0 - 2024.03.18
+-------------------
+
+Added architecture support:
+
+* initial support for ARMv7-R and Cortex-R8, verified with ThreadX and Zephyr
+* initial support for Cortex-A55
+* initial support for Cortex-M23 and Cortex-M85
+* support for RISC-V Bit Manipulation extensions - Zba, Zbb, Zbc and Zbs
+* support for RISC-V Half-precision Floating Point (Zfh) extension, including vector operations
+* support for RISC-V Andes AndeStar V5 ISA extension
+
+Added and improved platform descriptions:
+
+* generic Cortex-R8 platform
+* Renesas EK-RA2E1 board with R7FA2E1A9 SoC
+* Arduino Uno R4 Minima platform with Renesas F7FA4M1A SoC
+* Renesas CK-RA6M5 board with R7FA6M5B SoC, with initial radio support
+* Renesas EK-RA8M1 board with R7FA8M1A SoC
+* Renesas R7FA2L1A SoC
+* Renesas DA14592 SoC
+* Renesas RZ/T2M-RSK board with RZ/T2M SoC
+* Gaisler GR712RC SoC with UART, timer, GPIO, FTMC and Ethernet
+* Gaisler GR716 SoC with UART, timer and GPIO
+* Gaisler UT32M0R500 SoC with UART, timer and GPIO
+* NXP S32K388 with UART, timers, watchdog, SIUL2, SPI, Mode entry module and others
+* NXP LPC2294 SoC with UART, CAN, timer and interrupts support
+* Xilinx Zynq UltraScale+ MPSoC platform support with single core Cortex-A53, UART, GPIO and I2C
+* singlecore Cortex-R5 part of Zynq UltraScale+ MPSoC platform with UART, TTC, Ethernet and GPIO
+* Nuvoton NPCX9 platform support with UART, various timers, SPI, flash and other peripherals
+* ST Nucleo H753ZI with STM32H753 SoC with a range of ST peripherals
+* updates to Armv8-A platforms
+* updates to Ambiq Apollo4
+* updates to Xilinx Zynq 7000
+* various updates in STM32 platform files
+
+Added peripheral models:
+
+* ABRTCMC, I2C-based RTC
+* Altera JTAG UART
+* Ambiq Apollo4 Watchdog
+* Arm Global Timer
+* Arm Private Timer
+* Arm SP804 Timer
+* ArmSnoopControlUnit
+* BCM2711 AUX UART
+* BME280 sensor
+* Betrusted EC I2C
+* Betrusted SoC I2C
+* Bosch M_CAN
+* CAN to UART converter
+* Cadence Watchdog Timer
+* Gaisler APBUART
+* Gaisler GPIO
+* GigaDevice GD32 UART
+* HS3001 sensor
+* ICM20948 sensor
+* ICP10101 sensor
+* Infineon SCB UART
+* LINFlexD UART
+* MB85RC1MT Ferroelectric Random Access Memory
+* MXIC MX66UM1G45G flash
+* NPCX FIU
+* NPCX Flash
+* NPCX HFCG
+* NPCX ITIM32
+* NPCX LFCG
+* NPCX MDMA
+* NPCX Monotonic Counter
+* NPCX SPIP
+* NPCX Timer and Watchdog
+* NPCX UART
+* NXP LPC CAN
+* NXP LPC CTimer
+* NXP LPC USART
+* OB1203A sensor
+* PL190 vectored interrupt controller
+* PL330_DMA (CoreLink DMA-330) Controller
+* Renesas DA14 DMA peripheral
+* Renesas DA14 GPIO
+* Renesas DA14 General Purpose Timer
+* Renesas DA14 UART
+* Renesas DA14 I2C
+* Renesas DA16200 Wi-Fi module
+* Renesas RA series AGT
+* Renesas RA series GPIO
+* Renesas RA series GPT
+* Renesas RA series ICU
+* Renesas RA series SCI
+* Renesas RZ/T2M GPIO
+* Renesas RZ/T2M SCI
+* S32K3XX Miscellaneous System Control Module
+* S32K3XX Periodic Interrupt Timer
+* S32K3XX Real Time Clock
+* S32K3XX Software Watchdog Timer
+* S32K3XX System Integration Unit Lite 2
+* S32K3XX System Timer Module
+* S32K3XX FlexIO stub
+* S32K3XX Mode Entry Module
+* SHT45 temperature/humidity sensor
+* SPI NAND flash
+* STM32WBA PWR
+* Samsung K9 NAND Flash
+* Smartbond UART
+* Universal Flash Storage (JESD220F)
+* Universal Flash Storage Host Controller (JESD223E)
+* XMC4XXX UART
+* ZMOD4xxx sensor
+* Zynq 7000 System Level Control Registers
+
 
 1.14.0 - 2023.08.08
 -------------------

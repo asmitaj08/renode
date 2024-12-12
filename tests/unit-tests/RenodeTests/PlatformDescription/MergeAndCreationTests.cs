@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2010-2023 Antmicro
+// Copyright (c) 2010-2024 Antmicro
 //
 // This file is licensed under the MIT License.
 // Full license text is available in 'licenses/MIT.txt'.
@@ -547,7 +547,7 @@ sender:
         public void ShouldHandleManyMultiplexedMultiDestinationInterrupts()
         {
             var source = @"
-sender: Antmicro.Renode.UnitTests.Mocks.MockGPIOByNumberConnectorPeripheral @ sysbus <0, 1>
+sender: Antmicro.Renode.UnitTests.Mocks.MockGPIOByNumberConnectorPeripheral @ sysbus <3, 4>
     gpios: 2
     [0, Irq] -> receiver@[1-2] | receiver2@[3-4] | receiver3@[5-6]
 receiver: Antmicro.Renode.UnitTests.Mocks.MockReceiver @ sysbus <0, 1>
@@ -619,8 +619,8 @@ using ""A""
 
 sender:
     [Irq, 3-4] -> receiver2@[0-2]
-    6 -> receiver@7
-    [7-8] -> receiver@[8-9]
+    6 -> receiver@16
+    [7-8] -> receiver@[17-18]
 ";
 
             ProcessSource(source, a);
@@ -646,11 +646,11 @@ sender:
             Assert.AreEqual(receiver2, sender.Connections[4].Endpoints[0].Receiver);
             Assert.AreEqual(5, sender.Connections[5].Endpoints[0].Number);
             Assert.AreEqual(receiver1, sender.Connections[5].Endpoints[0].Receiver);
-            Assert.AreEqual(7, sender.Connections[6].Endpoints[0].Number);
+            Assert.AreEqual(16, sender.Connections[6].Endpoints[0].Number);
             Assert.AreEqual(receiver1, sender.Connections[6].Endpoints[0].Receiver);
-            Assert.AreEqual(8, sender.Connections[7].Endpoints[0].Number);
+            Assert.AreEqual(17, sender.Connections[7].Endpoints[0].Number);
             Assert.AreEqual(receiver1, sender.Connections[7].Endpoints[0].Receiver);
-            Assert.AreEqual(9, sender.Connections[8].Endpoints[0].Number);
+            Assert.AreEqual(18, sender.Connections[8].Endpoints[0].Number);
             Assert.AreEqual(receiver1, sender.Connections[8].Endpoints[0].Receiver);
         }
 

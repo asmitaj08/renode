@@ -155,6 +155,18 @@ def prepare_parser():
                         default=None,
                         help="Generate perf.data from test in specified directory")
 
+    parser.add_argument("--runner",
+                        dest="runner",
+                        action="store",
+                        default=None,
+                        help=".NET runner.")
+
+    parser.add_argument("--net",
+                        dest="discarded",
+                        action="store_const",
+                        const="dotnet",
+                        help="Flag is deprecated and has no effect.")
+
     if platform != "win32":
         parser.add_argument("-p", "--port",
                             dest="port",
@@ -229,6 +241,28 @@ def handle_options(options):
 
     options.configuration = 'Debug' if options.debug_mode else 'Release'
 
+    if options.remote_server_full_directory is not None:
+        if not os.path.isabs(options.remote_server_full_directory):
+            options.remote_server_full_directory = os.path.join(this_path, options.remote_server_full_directory)
+    else:
+        options.remote_server_full_directory = os.path.join(options.remote_server_directory_prefix, options.configuration)
+
+    try:
+        # Try to infer the runner based on the build type
+        with open(os.path.join(options.remote_server_full_directory, "build_type"), "r") as f:
+            options.runner = f.read().strip()
+        if platform == "win32" and options.runner != "dotnet":
+            options.runner = "none" # .NET Framework applications run natively on Windows
+    except:
+        # Fallback to the explicitly provided runner or platform's default if nothing was passed
+        if options.runner is None:
+            options.runner = "mono" if platform.startswith("linux") or platform == "darwin" else "none"
+
+    # Apply the dotnet telemetry optout in this script instead of the shell wrappers as it's
+    # portable between OSes
+    if options.runner == 'dotnet':
+        os.putenv("DOTNET_CLI_TELEMETRY_OPTOUT", "1")
+
 
 def register_handler(handler_type, extension, creator, before_parsing=None, after_parsing=None):
     registered_handlers.append({'type': handler_type, 'extension': extension, 'creator': creator, 'before_parsing': before_parsing, 'after_parsing': after_parsing})
@@ -277,6 +311,23 @@ def configure_output(options):
             options.output = open(options.output_file)
         except Exception:
             print("Failed to open output file. Falling back to STDOUT.")
+
+
+# Raised exceptions typically cause `map_async` to fail after all the tests have been processed.
+# Let's print them with traceback right away to know the exact moment and raise the exception to
+# fail `map_async` too.
+def task(args):
+    # Exception handling needs to be adjusted if there's more than one suite in a parallel group.
+    group = args[0]
+    assert len(group) == 1, "Parallel task started with more than one suite!"
+
+    try:
+        return run_test_group(args)
+    except Exception as e:
+        print(f"Exception occurred when running {group[0].path}:")
+        import traceback
+        traceback.print_exception(e)
+        raise
 
 
 def run_test_group(args):
@@ -454,7 +505,7 @@ def run():
         # this get is a hack - see: https://stackoverflow.com/a/1408476/980025
         # we use `async` + `get` in order to allow "Ctrl+C" to be handled correctly;
         # otherwise it would not be possible to abort tests in progress
-        tests_failed, logs = zip(*pool.map_async(run_test_group, args).get(999999))
+        tests_failed, logs = zip(*pool.map_async(task, args).get(999999))
         pool.close()
         print("Waiting for all processes to exit")
         pool.join()

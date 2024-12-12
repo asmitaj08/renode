@@ -23,6 +23,7 @@ Read Should Be Equal
 *** Test Cases ***
 
 Should Return Syntax Error
+             [Tags]                   skip_windows
              Create Platform
 
              # BlockPythonEngine
@@ -55,21 +56,21 @@ Should Return Syntax Error
              ...                      machine AddUserStateHook "foobar" "if error"
 
 Should Abort On Runtime Error
+             [Tags]                   skip_windows
              Create Platform
              Create Log Tester        1
 
              Execute Command          logLevel -1 cpu
              Execute Command          cpu InstallCustomInstructionHandlerFromString "11111111111111111111111100001011" "a = b"
              Execute Command          sysbus WriteDoubleWord 0x00000000 0xffffff0b
-             Execute Command          cpu ExecutionMode SingleStepBlocking
              Execute Command          cpu PC 0x00000000
 
-             Start Emulation
              Execute Command          cpu Step
              Wait For Log Entry       Python runtime error: name 'b' is not defined
              Wait For Log Entry       CPU abort detected, halting.
 
 PyDev Should Handle QuadWord Accesses
+             [Tags]                   skip_windows
              Execute Command          mach create
              Execute Command          numbersMode Hexadecimal
 
@@ -95,7 +96,8 @@ PyDev Should Handle QuadWord Accesses
              Read Should Be Equal     QuadWord  ${pydev_address}  ${new_value}
 
 Should Handle Unsupported Variable Types
-             Execute Command          $a=@a
+             [Tags]                   skip_windows
+             Execute Command          $a=1
 
     ${out}=  Run Keyword And Expect Error  KeywordException:*
              ...                      Execute Command          py $a

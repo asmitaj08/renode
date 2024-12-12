@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2010-2022 Antmicro
+// Copyright (c) 2010-2024 Antmicro
 //
 // This file is licensed under the MIT License.
 // Full license text is available in 'licenses/MIT.txt'.
@@ -13,7 +13,9 @@ using System.Text;
 using Antmicro.Migrant;
 using Antmicro.Renode.Core;
 using Antmicro.Renode.Exceptions;
+using Antmicro.Renode.Peripherals;
 using Antmicro.Renode.Peripherals.UART;
+using Antmicro.Renode.Peripherals.USB;
 using Antmicro.Renode.Utilities;
 using TermSharp.Vt100;
 
@@ -24,7 +26,29 @@ namespace Antmicro.Renode.Integrations
         public static void RecordToAsciinema(this IUART uart, string filePath, bool useVirtualTimeStamps = false, int width = 80, int height = 24)
         {
             var emulation = EmulationManager.Instance.CurrentEmulation;
-            if(!emulation.TryGetMachineForPeripheral(uart, out var machine))
+            IMachine machine = null;
+            // This is a temporary solution and should be addressed later
+            var cdcAcmUart = uart as CDCToUARTConverter;
+            if(cdcAcmUart != null)
+            {
+                // In USB, the CDC ACM UART isn't enabled before enumeration.
+                // We use Children here, assuming that after enumeration the
+                // UART will be available.
+                var devices = cdcAcmUart.Children;
+                foreach(var device in devices)
+                {
+                    if(emulation.TryGetMachineForPeripheral(device.Peripheral, out machine))
+                    {
+                        break;
+                    }
+                }
+                
+                if(machine == null)
+                {
+                    throw new RecoverableException("Could not find machine for the given CDC ACM UART");
+                }
+            }
+            else if(!emulation.TryGetMachineForPeripheral(uart, out machine))
             {
                 throw new RecoverableException("Could not find machine for the given UART");
             }
@@ -119,6 +143,7 @@ namespace Antmicro.Renode.Integrations
 
         private static List<Tuple<string, string>> mappings = new List<Tuple<string, string>>
         {
+            {"\\",     "\\\\"},
             {"\u0007", "\\a"},
             {"\u0008", "\\b"},
             {"\u0009", "\\t"},
