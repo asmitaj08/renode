@@ -65,6 +65,7 @@ namespace Antmicro.Renode.PlatformDescription
         {
             try
             {
+                Console.WriteLine("^^^^ CreationDriver.cs ProcessInner starting");
                 ValidatePreMerge(file, source, "");
                 var mergedEntries = variableStore.GetMergedEntries();
                 foreach(var entry in mergedEntries)
@@ -139,6 +140,7 @@ namespace Antmicro.Renode.PlatformDescription
                 irqCombiners.Clear();
                 PrepareVariables();
             }
+            Console.WriteLine("^^^^ CreationDriver.cs ProcessInner before machine PostCreationActions()");
             machine.PostCreationActions();
         }
 
@@ -185,12 +187,14 @@ namespace Antmicro.Renode.PlatformDescription
         private void PrepareVariables()
         {
             // machine is always there and is not a peripheral
+            Console.WriteLine("CreationDriver.cs PrepareVariables() start");
             variableStore.AddBuiltinOrAlreadyRegisteredVariable(Machine.MachineKeyword, machine);
             var peripherals = machine.GetRegisteredPeripherals().Where(x => !string.IsNullOrEmpty(x.Name)).Select(x => Tuple.Create(x.Peripheral, x.Name)).Distinct().ToDictionary(x => x.Item1, x => x.Item2);
             foreach(var peripheral in peripherals)
             {
                 variableStore.AddBuiltinOrAlreadyRegisteredVariable(peripheral.Value, peripheral.Key);
             }
+            Console.WriteLine("CreationDriver.cs PrepareVariables() Done");
         }
 
         private void ProcessUsing(UsingEntry usingEntry, string parentPrefix, string includingFile)
