@@ -313,29 +313,12 @@ def configure_output(options):
             print("Failed to open output file. Falling back to STDOUT.")
 
 
-# Raised exceptions typically cause `map_async` to fail after all the tests have been processed.
-# Let's print them with traceback right away to know the exact moment and raise the exception to
-# fail `map_async` too.
-def task(args):
-    # Exception handling needs to be adjusted if there's more than one suite in a parallel group.
-    group = args[0]
-    assert len(group) == 1, "Parallel task started with more than one suite!"
-
-    try:
-        return run_test_group(args)
-    except Exception as e:
-        print(f"Exception occurred when running {group[0].path}:")
-        import traceback
-        traceback.print_exception(e)
-        raise
-
-
 def run_test_group(args):
 
     group, options, test_id = args
 
     iteration_counter = 0
-    tests_failed = False
+    group_failed = False
     log_files = set()
 
     # this function will be called in a separate
@@ -354,34 +337,44 @@ def run_test_group(args):
         for suite in group:
             retry_suites_counter = 0
             should_retry_suite = True
-            while should_retry_suite and retry_suites_counter < options.retry_count:
-                retry_suites_counter += 1
+            suite_failed = False
 
-                if retry_suites_counter > 1:
-                    print("Retrying suite, attempt {} of {}...".format(retry_suites_counter, options.retry_count))
+            try:
+                while should_retry_suite and retry_suites_counter < options.retry_count:
+                    retry_suites_counter += 1
 
-                # we need to collect log files here instead of appending to a global list
-                # in each suite runner because this function will be called in a multiprocessing
-                # context when using the --jobs argument, as mentioned above
-                ok, suite_log_files = suite.run(options,
-                                                run_id=test_id if options.jobs != 1 else 0,
-                                                iteration_index=iteration_counter,
-                                                suite_retry_index=retry_suites_counter - 1)
-                log_files.update((type(suite), log_file) for log_file in suite_log_files)
-                if ok:
-                    tests_failed = False
-                    should_retry_suite = False
-                else:
-                    tests_failed = True
-                    should_retry_suite = suite.should_retry_suite(options, iteration_counter, retry_suites_counter - 1)
-                    if options.retry_count > 1 and not should_retry_suite:
-                        print("No Robot<->Renode connection issues were detected to warrant a suite retry - giving up.")
+                    if retry_suites_counter > 1:
+                        print("Retrying suite, attempt {} of {}...".format(retry_suites_counter, options.retry_count))
 
-        if options.stop_on_error and tests_failed:
+                    # we need to collect log files here instead of appending to a global list
+                    # in each suite runner because this function will be called in a multiprocessing
+                    # context when using the --jobs argument, as mentioned above
+                    ok, suite_log_files = suite.run(options,
+                                                    run_id=test_id if options.jobs != 1 else 0,
+                                                    iteration_index=iteration_counter,
+                                                    suite_retry_index=retry_suites_counter - 1)
+                    log_files.update((type(suite), log_file) for log_file in suite_log_files)
+                    if ok:
+                        suite_failed = False
+                        should_retry_suite = False
+                    else:
+                        suite_failed = True
+                        should_retry_suite = suite.should_retry_suite(options, iteration_counter, retry_suites_counter - 1)
+                        if options.retry_count > 1 and not should_retry_suite:
+                            print("No Robot<->Renode connection issues were detected to warrant a suite retry - giving up.")
+            except Exception as e:
+                print(f"Exception occurred when running {suite.path}:")
+                import traceback
+                traceback.print_exception(e)
+                raise
+
+            if suite_failed:
+                group_failed = True
+        if options.stop_on_error and group_failed:
             break
 
     options.output.flush()
-    return (tests_failed, log_files)
+    return (group_failed, log_files)
 
 def print_failed_tests(options):
     for handler in registered_handlers:
@@ -505,7 +498,7 @@ def run():
         # this get is a hack - see: https://stackoverflow.com/a/1408476/980025
         # we use `async` + `get` in order to allow "Ctrl+C" to be handled correctly;
         # otherwise it would not be possible to abort tests in progress
-        tests_failed, logs = zip(*pool.map_async(task, args).get(999999))
+        tests_failed, logs = zip(*pool.map_async(run_test_group, args).get(999999))
         pool.close()
         print("Waiting for all processes to exit")
         pool.join()

@@ -2,12 +2,14 @@ cluster: CPU.Cluster @ sysbus
 
 cpu0: CPU.ARMv8A @ cluster
     cpuType: "cortex-a55"
-    cpuId: 0
+    // Aff1: 0, Aff0: 0
+    cpuId: 0x0
     genericInterruptController: gic
 
 cpu1: CPU.ARMv8A @ cluster
     cpuType: "cortex-a55"
-    cpuId: 1
+    // Aff1: 1, Aff0: 0
+    cpuId: 0x100
     genericInterruptController: gic
 
 cpu_m33: CPU.CortexM @ sysbus
@@ -29,7 +31,6 @@ gic: IRQControllers.ARM_GenericInterruptController @ {
         sysbus new Bus.BusMultiRegistration { address: 0x51900000; size: 0x10000; region: "distributor"; cpu: cpu_m33 };
         sysbus new IRQControllers.ArmGicRedistributorRegistration { attachedCPU: cpu0; visibleTo: cpu_m33; address: 0x51940000 };
         sysbus new IRQControllers.ArmGicRedistributorRegistration { attachedCPU: cpu1; visibleTo: cpu_m33; address: 0x51960000 }
-
     }
     architectureVersion: ARM_GenericInterruptControllerVersion.GICv3
     [0-3] -> cpu0@[0-3]
@@ -175,6 +176,7 @@ scif4: SCI.RenesasRZG_SCIFA @ {
     [0-4] -> gic@[400-404] | nvic@[400-404]
 
 wdt_m33: Timers.RenesasRZG_Watchdog @ {
+        cpg_sysc 2;
         sysbus new Bus.BusPointRegistration { address: 0x012800400; cluster: cluster };
         sysbus new Bus.BusPointRegistration { address: 0x42800400; cpu: cpu_m33 }; // Non-secure
         sysbus new Bus.BusPointRegistration { address: 0x52800400; cpu: cpu_m33 }  // Secure
@@ -183,6 +185,7 @@ wdt_m33: Timers.RenesasRZG_Watchdog @ {
     -> gic@49 | nvic@49
 
 wdt_a55_0: Timers.RenesasRZG_Watchdog @ {
+        cpg_sysc 0;
         sysbus new Bus.BusPointRegistration { address: 0x012800800; cluster: cluster };
         sysbus new Bus.BusPointRegistration { address: 0x42800800; cpu: cpu_m33 }; // Non-secure
         sysbus new Bus.BusPointRegistration { address: 0x52800800; cpu: cpu_m33 }  // Secure
@@ -191,6 +194,7 @@ wdt_a55_0: Timers.RenesasRZG_Watchdog @ {
     -> gic@53 | nvic@53
 
 wdt_a55_1: Timers.RenesasRZG_Watchdog @ {
+        cpg_sysc 1;
         sysbus new Bus.BusPointRegistration { address: 0x012800C00; cluster: cluster };
         sysbus new Bus.BusPointRegistration { address: 0x42800C00; cpu: cpu_m33 }; // Non-secure
         sysbus new Bus.BusPointRegistration { address: 0x52800C00; cpu: cpu_m33 }  // Secure
@@ -235,6 +239,8 @@ gpio: GPIOPort.RenesasRZG_GPIO @ {
         sysbus new Bus.BusPointRegistration { address: 0x41030000; cpu: cpu_m33 }; // Non-secure
         sysbus new Bus.BusPointRegistration { address: 0x51030000; cpu: cpu_m33 }  // Secure
     }
+    [IRQ0, IRQ1, IRQ2, IRQ3, IRQ4, IRQ5, IRQ6, IRQ7] -> ia55@[1-8] | im33@[1-8]
+    [0-122] -> ia55@[9-131] | im33@[9-131]
 
 riic0: I2C.RenesasRZG_IIC @ {
         sysbus new Bus.BusPointRegistration { address: 0x010058000; cluster: cluster };
@@ -284,14 +290,88 @@ riic3: I2C.RenesasRZG_IIC @ {
     StopIRQ -> gic@376 | nvic@376
     StartIRQ -> gic@377 | nvic@377
 
-cpg_clkmon_i2c: Python.PythonPeripheral @ {
-        sysbus new Bus.BusPointRegistration { address: 0x011010700; cluster: cluster };
-        sysbus new Bus.BusPointRegistration { address: 0x41010700; cpu: cpu_m33 }; // Non-secure
-        sysbus new Bus.BusPointRegistration { address: 0x51010700; cpu: cpu_m33 }  // Secure
+dmac_s: DMA.RenesasRZG_DMAC @ {
+        sysbus new Bus.BusPointRegistration { address: 0x011800000; cluster: cluster };
+        sysbus new Bus.BusPointRegistration { address: 0x41800000; cpu: cpu_m33 }; // Non-secure
+        sysbus new Bus.BusPointRegistration { address: 0x51800000; cpu: cpu_m33 }  // Secure
+    }
+    [0-15] -> gic@[108-123] | nvic@[108-123]
+    ErrorIRQ -> gic@124 | nvic@124
+
+dmac_ns: DMA.RenesasRZG_DMAC @ {
+        sysbus new Bus.BusPointRegistration { address: 0x011820000; cluster: cluster };
+        sysbus new Bus.BusPointRegistration { address: 0x41820000; cpu: cpu_m33 }; // Non-secure
+        sysbus new Bus.BusPointRegistration { address: 0x51820000; cpu: cpu_m33 }  // Secure
+    }
+    [0-15] -> gic@[125-140] | nvic@[125-140]
+    ErrorIRQ -> gic@141 | nvic@141
+
+ia55: IRQControllers.RenesasRZG_IRQController @ {
+        sysbus new Bus.BusPointRegistration { address: 0x110A0000; cluster: cluster };
+        sysbus new Bus.BusPointRegistration { address: 0x410A0000; cpu: cpu_m33 }; // Non-secure
+        sysbus new Bus.BusPointRegistration { address: 0x510A0000; cpu: cpu_m33 }  // Secure
+    }
+    [IRQ0, IRQ1, IRQ2, IRQ3, IRQ4, IRQ5, IRQ6, IRQ7] -> gic@[1-8]
+    [0-31] -> gic@[444-475]
+
+im33: IRQControllers.RenesasRZG_IRQController @ {
+        sysbus new Bus.BusPointRegistration { address: 0x110B0000; cluster: cluster };
+        sysbus new Bus.BusPointRegistration { address: 0x410B0000; cpu: cpu_m33 }; // Non-secure
+        sysbus new Bus.BusPointRegistration { address: 0x510B0000; cpu: cpu_m33 }  // Secure
+    }
+    [IRQ0, IRQ1, IRQ2, IRQ3, IRQ4, IRQ5, IRQ6, IRQ7] -> nvic@[1-8]
+    [0-31] -> nvic@[444-475]
+
+syc: Timers.RenesasRZG_SYC @ {
+        sysbus new Bus.BusPointRegistration { address: 0x011000000; cluster: cluster };
+        sysbus new Bus.BusPointRegistration { address: 0x41000000; cpu: cpu_m33 }; // Non-secure
+        sysbus new Bus.BusPointRegistration { address: 0x51000000; cpu: cpu_m33 }  // Secure
+    }
+    frequency: 24000000
+
+cpg_sysc: Miscellaneous.RenesasRZG_CPG_SYSC @ {
+        sysbus new Bus.BusPointRegistration { address: 0x11010000; cluster: cluster };
+        sysbus new Bus.BusPointRegistration { address: 0x41010000; cpu: cpu_m33 }; // Non-secure
+        sysbus new Bus.BusPointRegistration { address: 0x51010000; cpu: cpu_m33 }  // Secure
+    }
+    cpu0: cpu0
+    cpu1: cpu1
+
+sram_acpu_gatekeeper: Python.PythonPeripheral @ {
+        sysbus new Bus.BusPointRegistration { address: 0x11040008; cluster: cluster };
+        sysbus new Bus.BusPointRegistration { address: 0x41040008; cluster: cpu_m33 }; // Non-secure
+        sysbus new Bus.BusPointRegistration { address: 0x51040008; cluster: cpu_m33 }  // Secure
     }
     size: 0x4
     initable: true
-    filename: "scripts/pydev/rolling-bit.py"
+    filename: "scripts/pydev/tzc400_gatekeeper.py"
+
+sram_mcpu_gatekeeper: Python.PythonPeripheral @ {
+        sysbus new Bus.BusPointRegistration { address: 0x11050008; cluster: cluster };
+        sysbus new Bus.BusPointRegistration { address: 0x41050008; cluster: cpu_m33 }; // Non-secure
+        sysbus new Bus.BusPointRegistration { address: 0x51050008; cluster: cpu_m33 }  // Secure
+    }
+    size: 0x4
+    initable: true
+    filename: "scripts/pydev/tzc400_gatekeeper.py"
+
+spi_gatekeeper: Python.PythonPeripheral @ {
+        sysbus new Bus.BusPointRegistration { address: 0x11060008; cluster: cluster };
+        sysbus new Bus.BusPointRegistration { address: 0x41060008; cluster: cpu_m33 }; // Non-secure
+        sysbus new Bus.BusPointRegistration { address: 0x51060008; cluster: cpu_m33 }  // Secure
+    }
+    size: 0x4
+    initable: true
+    filename: "scripts/pydev/tzc400_gatekeeper.py"
+
+ddr_gatekeeper: Python.PythonPeripheral @ {
+        sysbus new Bus.BusPointRegistration { address: 0x11070008; cluster: cluster };
+        sysbus new Bus.BusPointRegistration { address: 0x41070008; cluster: cpu_m33 }; // Non-secure
+        sysbus new Bus.BusPointRegistration { address: 0x51070008; cluster: cpu_m33 }  // Secure
+    }
+    size: 0x4
+    initable: true
+    filename: "scripts/pydev/tzc400_gatekeeper.py"
 
 sysbus:
     init:
@@ -324,27 +404,14 @@ sysbus:
         Tag <0x010880000 0x10000>   "FCPVD (Cortex-A55)"
         Tag <0x010890000 0x10000>   "DU (Cortex-A55)"
         Tag <0x010C00000 0x1000000> "CST (CoreSight) (Cortex-A55)"
-        Tag <0x011000000 0x10000>   "SYC (Cortex-A55)"
-        Tag <0x011010000 0x10000>   "CPG (Cortex-A55)"
-        Tag <0x0110106C0 0x4>       "CPG_CLKMON_GPT" 0x1
-        Tag <0x0110106B4 0x4>       "CPG_CLKMON_GTM" 0x7    // GTM clocks are enabled
-        Tag <0x011010704 0x4>       "CPG_CLKMON_SCIF" 0x1f  // SCIF clocks are enabled
-        Tag <0x011010710 0x4>       "CPG_CLKMON_RSPI" 0x7   // SPI clocks are enabled
-        Tag <0x011020000 0x10000>   "SYSC (Cortex-A55)"
         Tag <0x011040000 0x10000>   "TZC (SRAM ACPU) (Cortex-A55)"
         Tag <0x011050000 0x10000>   "TZC (SRAM MCPU) (Cortex-A55)"
         Tag <0x011060000 0x10000>   "TZC (SPI Multi I/O) (Cortex-A55)"
         Tag <0x011070000 0x10000>   "TZC (DDR) (Cortex-A55)"
         Tag <0x011080000 0x10000>   "SRAM ACPU (Reg) (Cortex-A55)"
         Tag <0x011090000 0x10000>   "SRAM MCPU (Reg) (Cortex-A55)"
-        Tag <0x0110A0000 0x10000>   "IA55 (Interrupt controller) (Cortex-A55)"
-        Tag <0x0110B0000 0x10000>   "IM33 (Interrupt controller) (Cortex-A55)"
         Tag <0x011400000 0x10000>   "DDR (PHY) (Cortex-A55)"
         Tag <0x011410000 0x10000>   "DDR (Control Reg) (Cortex-A55)"
-        Tag <0x011800000 0x10000>   "Secure DMAC (DMAC_S) AXI (Cortex-A55)"
-        Tag <0x011810000 0x10000>   "Secure DMAC (DMAC_S) APB (Cortex-A55)"
-        Tag <0x011820000 0x10000>   "Non Secure DMAC (DMAC_NS) AXI (Cortex-A55)"
-        Tag <0x011830000 0x10000>   "Non Secure DMAC (DMAC_NS) APB (Cortex-A55)"
         Tag <0x011840000 0x10000>   "Mali-G31 (Cortex-A55)"
         Tag <0x011860000 0x10000>   "OTP (Cortex-A55)"
         Tag <0x011C00000 0x10000>   "SD ch0 (Cortex-A55)"
@@ -385,27 +452,14 @@ sysbus:
         Tag <0x40880000 0x10000>    "FCPVD (Cortex-M33, Non-secure)"
         Tag <0x40890000 0x10000>    "DU (Cortex-M33, Non-secure)"
         Tag <0x40C00000 0x1000000>  "CST (CoreSight) (Cortex-M33, Non-secure)"
-        Tag <0x41000000 0x10000>    "SYC (Cortex-M33, Non-secure)"
-        Tag <0x41010000 0x10000>    "CPG (Cortex-M33, Non-secure)"
-        Tag <0x410106C0 0x4>        "CPG_CLKMON_GPT" 0x1
-        Tag <0x410106B4 0x4>        "CPG_CLKMON_GTM" 0x7    // GTM clocks are enabled
-        Tag <0x41010704 0x4>        "CPG_CLKMON_SCIF" 0x1f  // SCIF clocks are enabled
-        Tag <0x41010710 0x4>        "CPG_CLKMON_RSPI" 0x7   // SPI clocks are enabled
-        Tag <0x41020000 0x10000>    "SYSC (Cortex-M33, Non-secure)"
         Tag <0x41040000 0x10000>    "TZC (SRAM ACPU) (Cortex-M33, Non-secure)"
         Tag <0x41050000 0x10000>    "TZC (SRAM MCPU) (Cortex-M33, Non-secure)"
         Tag <0x41060000 0x10000>    "TZC (SPI Multi I/O) (Cortex-M33, Non-secure)"
         Tag <0x41070000 0x10000>    "TZC (DDR) (Cortex-M33, Non-secure)"
         Tag <0x41080000 0x10000>    "SRAM ACPU (Reg) (Cortex-M33, Non-secure)"
         Tag <0x41090000 0x10000>    "SRAM MCPU (Reg) (Cortex-M33, Non-secure)"
-        Tag <0x410A0000 0x10000>    "IA55 (Interrupt controller) (Cortex-M33, Non-secure)"
-        Tag <0x410B0000 0x10000>    "IM33 (Interrupt controller) (Cortex-M33, Non-secure)"
         Tag <0x41400000 0x10000>    "DDR (PHY) (Cortex-M33, Non-secure)"
         Tag <0x41410000 0x10000>    "DDR (Control Reg) (Cortex-M33, Non-secure)"
-        Tag <0x41800000 0x10000>    "Secure DMAC (DMAC_S) AXI (Cortex-M33, Non-secure)"
-        Tag <0x41810000 0x10000>    "Secure DMAC (DMAC_S) APB (Cortex-M33, Non-secure)"
-        Tag <0x41820000 0x10000>    "Non Secure DMAC (DMAC_NS) AXI (Cortex-M33, Non-secure)"
-        Tag <0x41830000 0x10000>    "Non Secure DMAC (DMAC_NS) APB (Cortex-M33, Non-secure)"
         Tag <0x41840000 0x10000>    "Mali-G31 (Cortex-M33, Non-secure)"
         Tag <0x41860000 0x10000>    "OTP (Cortex-M33, Non-secure)"
         Tag <0x41C00000 0x10000>    "SD ch0 (Cortex-M33, Non-secure)"
@@ -446,27 +500,14 @@ sysbus:
         Tag <0x50880000 0x10000>    "FCPVD (Cortex-M33, Secure)"
         Tag <0x50890000 0x10000>    "DU (Cortex-M33, Secure)"
         Tag <0x50C00000 0x1000000>  "CST (CoreSight) (Cortex-M33, Secure)"
-        Tag <0x51000000 0x10000>    "SYC (Cortex-M33, Secure)"
-        Tag <0x51010000 0x10000>    "CPG (Cortex-M33, Secure)"
-        Tag <0x510106C0 0x4>        "CPG_CLKMON_GPT" 0x1
-        Tag <0x510106B4 0x4>        "CPG_CLKMON_GTM" 0x7    // GTM clocks are enabled
-        Tag <0x51010704 0x4>        "CPG_CLKMON_SCIF" 0x1f  // SCIF clocks are enabled
-        Tag <0x51010710 0x4>        "CPG_CLKMON_RSPI" 0x7   // SPI clocks are enabled
-        Tag <0x51020000 0x10000>    "SYSC (Cortex-M33, Secure)"
         Tag <0x51040000 0x10000>    "TZC (SRAM ACPU) (Cortex-M33, Secure)"
         Tag <0x51050000 0x10000>    "TZC (SRAM MCPU) (Cortex-M33, Secure)"
         Tag <0x51060000 0x10000>    "TZC (SPI Multi I/O) (Cortex-M33, Secure)"
         Tag <0x51070000 0x10000>    "TZC (DDR) (Cortex-M33, Secure)"
         Tag <0x51080000 0x10000>    "SRAM ACPU (Reg) (Cortex-M33, Secure)"
         Tag <0x51090000 0x10000>    "SRAM MCPU (Reg) (Cortex-M33, Secure)"
-        Tag <0x510A0000 0x10000>    "IA55 (Interrupt controller) (Cortex-M33, Secure)"
-        Tag <0x510B0000 0x10000>    "IM33 (Interrupt controller) (Cortex-M33, Secure)"
         Tag <0x51400000 0x10000>    "DDR (PHY) (Cortex-M33, Secure)"
         Tag <0x51410000 0x10000>    "DDR (Control Reg) (Cortex-M33, Secure)"
-        Tag <0x51800000 0x10000>    "Secure DMAC (DMAC_S) AXI (Cortex-M33, Secure)"
-        Tag <0x51810000 0x10000>    "Secure DMAC (DMAC_S) APB (Cortex-M33, Secure)"
-        Tag <0x51820000 0x10000>    "Non Secure DMAC (DMAC_NS) AXI (Cortex-M33, Secure)"
-        Tag <0x51830000 0x10000>    "Non Secure DMAC (DMAC_NS) APB (Cortex-M33, Secure)"
         Tag <0x51840000 0x10000>    "Mali-G31 (Cortex-M33, Secure)"
         Tag <0x51860000 0x10000>    "OTP (Cortex-M33, Secure)"
         Tag <0x51C00000 0x10000>    "SD ch0 (Cortex-M33, Secure)"
@@ -477,3 +518,39 @@ sysbus:
         Tag <0x51C50000 0x10000>    "USB ch0 (OTG-Host) (Cortex-M33, Secure)"
         Tag <0x51C60000 0x10000>    "USB ch0 (OTG-Func) (Cortex-M33, Secure)"
         Tag <0x51C70000 0x10000>    "USB ch1 Host (Cortex-M33, Secure)"
+
+        Tag <0x11050FE0 0x4>   "Peripheral ID 0 TZC" 0x60
+        Tag <0x11050FE4 0x4>   "Peripheral ID 1 TZC" 0xB4
+        Tag <0x11050FE8 0x4>   "Peripheral ID 2 TZC" 0x2B
+
+        Tag <0x11050FF0 0x4>   "Component ID 0 TZC" 0x0D
+        Tag <0x11050FF4 0x4>   "Component ID 1 TZC" 0xF0
+        Tag <0x11050FF8 0x4>   "Component ID 2 TZC" 0x05
+        Tag <0x11050FFC 0x4>   "Component ID 3 TZC" 0xB1
+
+        Tag <0x11040FE0 0x4>   "Peripheral ID 0 TZC" 0x60
+        Tag <0x11040FE4 0x4>   "Peripheral ID 1 TZC" 0xB4
+        Tag <0x11040FE8 0x4>   "Peripheral ID 2 TZC" 0x2B
+
+        Tag <0x11040FF0 0x4>   "Component ID 0 TZC" 0x0D
+        Tag <0x11040FF4 0x4>   "Component ID 1 TZC" 0xF0
+        Tag <0x11040FF8 0x4>   "Component ID 2 TZC" 0x05
+        Tag <0x11040FFC 0x4>   "Component ID 3 TZC" 0xB1
+
+        Tag <0x11070FE0 0x4>   "Peripheral ID 0 TZC" 0x60
+        Tag <0x11070FE4 0x4>   "Peripheral ID 1 TZC" 0xB4
+        Tag <0x11070FE8 0x4>   "Peripheral ID 2 TZC" 0x2B
+
+        Tag <0x11070FF0 0x4>   "Component ID 0 TZC" 0x0D
+        Tag <0x11070FF4 0x4>   "Component ID 1 TZC" 0xF0
+        Tag <0x11070FF8 0x4>   "Component ID 2 TZC" 0x05
+        Tag <0x11070FFC 0x4>   "Component ID 3 TZC" 0xB1
+
+        Tag <0x11060FE0 0x4>   "Peripheral ID 0 TZC" 0x60
+        Tag <0x11060FE4 0x4>   "Peripheral ID 1 TZC" 0xB4
+        Tag <0x11060FE8 0x4>   "Peripheral ID 2 TZC" 0x2B
+
+        Tag <0x11060FF0 0x4>   "Component ID 0 TZC" 0x0D
+        Tag <0x11060FF4 0x4>   "Component ID 1 TZC" 0xF0
+        Tag <0x11060FF8 0x4>   "Component ID 2 TZC" 0x05
+        Tag <0x11060FFC 0x4>   "Component ID 3 TZC" 0xB1

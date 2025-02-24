@@ -4,12 +4,12 @@ ${BIN}                              murax--demo.elf-s_26952-7635fc30d0a3ed10c5b7
 ${UART}                             sysbus.uart
 
 // Binaries from https://github.com/antmicro/renode-verilator-integration, rev. f9b4139
-${APB3UART_SOCKET_LINUX}            @${URI}/Vapb3uart-Linux-x86_64-12048046797-s_1620824-032429468be6348953be4dee1dd58f207de7ef7a
-${APB3UART_SOCKET_WINDOWS}          @${URI}/Vapb3uart-Windows-x86_64-12048046797.exe-s_3231205-a5ad3f3c2fbae644ea6a60c137bf24f039a901a0
-${APB3UART_SOCKET_MACOS}            @${URI}/Vapb3uart-macOS-x86_64-12048046797-s_220504-de2a1d717d2b072c80946f3a8787b7b73c00d7a4
-${APB3UART_NATIVE_LINUX}            @${URI}/libVapb3uart-Linux-x86_64-12048046797.so-s_2075112-e22c7625fe6f6f43157c23e7100df3ae0612d4cf
-${APB3UART_NATIVE_WINDOWS}          @${URI}/libVapb3uart-Windows-x86_64-12048046797.dll-s_3237057-f212c564b7875695fa5de4059f66f64489e04c3c
-${APB3UART_NATIVE_MACOS}            @${URI}/libVapb3uart-macOS-x86_64-12048046797.dylib-s_220448-1fc9bbfc2c7403cf9560c2a752cc96369b92d2e0
+${APB3UART_SOCKET_LINUX}            ${URI}/Vapb3uart-Linux-x86_64-12904733885-s_1639760-a15bb0221a8ae95ecd8554f5a2c78e783bc3d806
+${APB3UART_SOCKET_WINDOWS}          ${URI}/Vapb3uart-Windows-x86_64-12904733885.exe-s_3250718-de16e82b644a368079af147cad0a7bc6a8dea82e
+${APB3UART_SOCKET_MACOS}            ${URI}/Vapb3uart-macOS-x86_64-12904733885-s_224032-16d279cf20b3e9e07039d29f000e954c567dd9c8
+${APB3UART_NATIVE_LINUX}            ${URI}/libVapb3uart-Linux-x86_64-12904733885.so-s_2093168-c89c855d6d5cd1b000ee1deb96446c5cbd87e73f
+${APB3UART_NATIVE_WINDOWS}          ${URI}/libVapb3uart-Windows-x86_64-12904733885.dll-s_3257110-2a81e95599ae0f234a620265b253976053675e9a
+${APB3UART_NATIVE_MACOS}            ${URI}/libVapb3uart-macOS-x86_64-12904733885.dylib-s_240416-847e4db9882610f2068465a7426c17e4a45f92f8
 
 ${PLATFORM}=     SEPARATOR=
 ...  """                                                                        ${\n}
@@ -71,7 +71,7 @@ Handle UART Input
 
 *** Test Cases ***
 Echo On Uart With Native Communication
-    [Tags]                          skip_osx
+    [Tags]                     skip_osx  skip_host_arm
     Create Machine             ${APB3UART_NATIVE_LINUX}  ${APB3UART_NATIVE_WINDOWS}  ${APB3UART_NATIVE_MACOS}  @platforms/cpus/verilated/murax_vexriscv_verilated_uart.repl
     Create Terminal Tester     sysbus.uart
     Execute Command            showAnalyzer sysbus.uart
@@ -83,6 +83,7 @@ Echo On Uart With Native Communication
     Wait For Prompt On Uart    Ant
 
 Echo On Uart With Socket Based Communication
+    [Tags]                     skip_osx  skip_host_arm
     Create Machine With Platform Description From String  ${APB3UART_SOCKET_LINUX}  ${APB3UART_SOCKET_WINDOWS}  ${APB3UART_SOCKET_MACOS}  ${PLATFORM}
     Create Terminal Tester     sysbus.uart
     Execute Command            showAnalyzer sysbus.uart

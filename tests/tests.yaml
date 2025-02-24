@@ -162,6 +162,7 @@
 - tests/peripherals/CLIC/CLIC-preemption-01.robot
 - tests/peripherals/CLIC/CLIC-priorities-01.robot
 - tests/peripherals/CLIC/CLIC-level-prio-01.robot
+- tests/peripherals/CLIC/CLIC-mcause-mstatus-alias.robot
 - tests/platforms/NPCX9.robot
 - tests/unit-tests/arm-gic-redistributor.robot
 - tests/unit-tests/python-engine.robot
@@ -177,3 +178,11 @@
 - tests/unit-tests/aarch64-host.robot
 - tests/platforms/MSP430X.robot
 - tests/unit-tests/riscv-zve-extension.robot
+- tests/unit-tests/sync_pc.robot
+- tests/platforms/systemc/interrupts/interrupts.robot
+- tests/platforms/systemc/multiple-peripherals/multiple-peripherals.robot
+- tests/platforms/systemc/transaction-delay/transaction-delay.robot
+- tests/platforms/systemc/test-synchronization/synchronization.robot
+- tests/unit-tests/instructions-counting.robot
+- tests/unit-tests/timer-reconfiguration.robot
+- tests/platforms/S32K388.robot

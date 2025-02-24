@@ -11,6 +11,7 @@ using Antmicro.Renode.Peripherals.Bus;
 using Antmicro.Renode.Peripherals.UART;
 using Antmicro.Renode.Plugins.CoSimulationPlugin.Connection;
 using Antmicro.Renode.Plugins.CoSimulationPlugin.Connection.Protocols;
+using Range = Antmicro.Renode.Core.Range;
 
 namespace Antmicro.Renode.Peripherals.CoSimulated
 {
@@ -20,20 +21,20 @@ namespace Antmicro.Renode.Peripherals.CoSimulated
         public CoSimulatedUART(Machine machine, int maxWidth = 64, bool useAbsoluteAddress = false, long frequency = VerilogTimeunitFrequency, 
             string simulationFilePathLinux = null, string simulationFilePathWindows = null, string simulationFilePathMacOS = null,
             string simulationContextLinux = null, string simulationContextWindows = null, string simulationContextMacOS = null,
-            ulong limitBuffer = LimitBuffer, int timeout = DefaultTimeout, string address = null, int numberOfOutputGPIOs = 0, bool createConnection = true, 
-            int outputGPIOOffset = -1, int inputGPIOOffset = 0)
+            ulong limitBuffer = LimitBuffer, int timeout = DefaultTimeout, string address = null, bool createConnection = true, 
+            ulong renodeToCosimSignalsOffset = 0, Range? cosimToRenodeSignalRange = null)
             : base(machine, maxWidth, useAbsoluteAddress, frequency, 
                     simulationFilePathLinux, simulationFilePathWindows, simulationFilePathMacOS,
                     simulationContextLinux, simulationContextWindows, simulationContextMacOS,
-                    limitBuffer, timeout, address, numberOfOutputGPIOs, createConnection, 
-                    outputGPIOOffset, inputGPIOOffset)
+                    limitBuffer, timeout, address, createConnection, renodeToCosimSignalsOffset,
+                    cosimToRenodeSignalRange, 0, 0)
         {
             IRQ = new GPIO();
         }
 
         public void WriteChar(byte value)
         {
-            connection.Send((ActionType)UARTActionNumber.UARTRxd, 0, value);
+            connection.Send(this, (ActionType)UARTActionNumber.UARTRxd, 0, value);
         }
 
         public bool HandleReceivedMessage(ProtocolMessage message)
@@ -49,7 +50,13 @@ namespace Antmicro.Renode.Peripherals.CoSimulated
 
         public override void ReceiveGPIOChange(int coSimNumber, bool value)
         {
-            var localNumber = coSimNumber - (int)outputGPIORange.StartAddress;
+            if(!cosimToRenodeSignalRange.HasValue)
+            {
+                this.Log(LogLevel.Warning, $"Received GPIO change from co-simulation, but no cosimToRenodeSignalRange is defined.");
+                return;
+            }
+
+            var localNumber = coSimNumber - (int)cosimToRenodeSignalRange.Value.StartAddress;
             if (localNumber != RxdInterrupt)
             {
                  this.Log(LogLevel.Warning, "Unhandled interrupt: '{0}'", localNumber);

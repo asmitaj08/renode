@@ -26,6 +26,10 @@ namespace Antmicro.Renode.Peripherals.CoSimulated
     {
         public CoSimulatedCFU(Machine machine, long frequency = 0, ulong limitBuffer = LimitBuffer, int timeout = DefaultTimeout, string simulationFilePathLinux = null, string simulationFilePathWindows = null, string simulationFilePathMacOS = null)
         {
+            // Multiple CoSimulatedCFUs per CoSimulationConnection are currently not supported.
+            RenodeToCosimIndex = 0;
+            CosimToRenodeIndex = 0;
+
             connection = new CoSimulationConnection(machine, "cosimulation_connection", frequency,
                     simulationFilePathLinux, simulationFilePathWindows, simulationFilePathMacOS,
                     null, null, null,
@@ -53,8 +57,6 @@ namespace Antmicro.Renode.Peripherals.CoSimulated
             executeBinder?.Dispose();
             Marshal.FreeHGlobal(errorPointer);
         }
-
-        public bool IsPaused => (bool)connection.IsPaused;
 
         public string SimulationContextLinux
         {
@@ -267,6 +269,9 @@ namespace Antmicro.Renode.Peripherals.CoSimulated
             }
         }
 
+        public int RenodeToCosimIndex { get; }
+        public int CosimToRenodeIndex { get; }
+
         protected const ulong LimitBuffer = 100000;
         protected const int DefaultTimeout = 3000;
         private NativeBinder executeBinder;
@@ -275,7 +280,7 @@ namespace Antmicro.Renode.Peripherals.CoSimulated
 
 #pragma warning disable 649
         [Import(UseExceptionWrapper = false)]
-        private FuncUInt64UInt32UInt32UInt32IntPtr execute;
+        private Func<uint, uint, uint, IntPtr, ulong> execute;
 #pragma warning restore 649
 
         private enum CfuStatus

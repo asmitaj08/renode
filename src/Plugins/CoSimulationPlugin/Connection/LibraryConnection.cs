@@ -94,23 +94,6 @@ namespace Antmicro.Renode.Plugins.CoSimulationPlugin.Connection
             IsConnected = false;
         }
 
-        public void Start()
-        {
-            // intentionally left empty
-        }
-
-        public void Pause()
-        {
-            // intentionally left empty
-        }
-
-        public void Resume()
-        {
-            // intentionally left empty
-        }
-
-        public bool IsPaused => false;
-
         [Export]
         public void HandleMainMessage(IntPtr received)
         {
@@ -254,9 +237,9 @@ namespace Antmicro.Renode.Plugins.CoSimulationPlugin.Connection
 
 #pragma warning disable 649
         [Import(UseExceptionWrapper = false)]
-        private ActionIntPtr handleRequest;
+        private Action<IntPtr> handleRequest;
         [Import(UseExceptionWrapper = false, Optional = true)]
-        private ActionIntPtr initializeContext;
+        private Action<IntPtr> initializeContext;
         [Import(UseExceptionWrapper = false)]
         private Action initializeNative;
         [Import(UseExceptionWrapper = false)]
