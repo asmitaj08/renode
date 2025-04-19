@@ -342,6 +342,7 @@ namespace Antmicro.Renode.Peripherals.SystemC
 
         public void Reset()
         {
+            Console.WriteLine("^^^^^^ SystemCPeripherlas.c Reset()");
             outGPIOState = 0;
             var request = new RenodeMessage(RenodeAction.Reset, 0, 0, 0, 0);
             SendRequest(request, out var response);

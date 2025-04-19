@@ -65,19 +65,28 @@ namespace Antmicro.Renode.PlatformDescription
         {
             try
             {
-                Console.WriteLine("^^^^ CreationDriver.cs ProcessInner starting");
+                Console.WriteLine($"^^^^ CreationDriver.cs ProcessInner starting, file : {file}");
                 ValidatePreMerge(file, source, "");
                 var mergedEntries = variableStore.GetMergedEntries();
+                // Console.WriteLine($"^^^^ CreationDriver.cs mergedEntries : {mergedEntries}");
+                // var count1 = 0; //testing
                 foreach(var entry in mergedEntries)
                 {
+                    // Console.WriteLine($"^^^^ CreationDriver.cs mergedEntries entry num: {count1}, entry.Variablename :  {entry.VariableName}, entry.Type : {entry.Type}, entry.RegistrationInfo : {entry.RegistrationInfos}");
                     ValidateEntryPostMerge(entry);
+                    // count1+=1; //testing
                 }
 
                 var sortedForCreation = SortEntriesForCreation(mergedEntries);
+                 Console.WriteLine($"^^^^ CreationDriver.cs sortedForCreation : {sortedForCreation}");
                 var irqConnectionCount = new Dictionary<IrqDestination, int>();
+                var count1=0;
                 foreach(var entry in sortedForCreation)
                 {
+                    Console.WriteLine($"^^^^ CreationDriver.cs sortedForCreation entry: {count1}: {entry.VariableName}");
+                    count1+=1;
                     CreateFromEntry(entry);
+                    Console.WriteLine($"^^^^^ CreationDriver.cs Entry {entry.VariableName} created");
 
                     var irqs = entry.Attributes.OfType<IrqAttribute>()
                         .SelectMany(attr => attr.Destinations)
@@ -602,6 +611,7 @@ namespace Antmicro.Renode.PlatformDescription
                 return;
             }
             var constructor = entry.Constructor;
+            Console.WriteLine($"^^^^^ CreationDriver.cs : entry.Constructor : {constructor} ");
             entry.Variable.Value = CreateAndHandleError(constructor, entry.Attributes, string.Format("'{0}'", entry.VariableName), entry.Type);
         }
 

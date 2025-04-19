@@ -105,6 +105,7 @@ namespace Antmicro.Renode.Peripherals.SystemC
 
         public override void Reset()
         {
+            Console.WriteLine("^^^^ SystemCCPU.cs Reset()");
             totalExecutedInstructions = 0;
             systemCPeripheral.Reset();
             base.Reset();
