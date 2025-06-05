@@ -7,6 +7,7 @@
 using Antmicro.Renode.Core;
 using Antmicro.Renode.Peripherals.CPU;
 using ELFSharp.ELF;
+using System;
 
 namespace Antmicro.Renode.Peripherals.SystemC
 {
@@ -20,7 +21,7 @@ namespace Antmicro.Renode.Peripherals.SystemC
 
         [Register]
         public override RegisterValue PC
-        {
+        {    
             get => GetRegisterValue32((int)SystemCCortexMRegisters.PC);
             set => SetRegisterValue32((int)SystemCCortexMRegisters.PC, value);
         }
