@@ -2,5 +2,6 @@
     "files.associations": {
         ".fantomasignore": "ignore",
         "tlib-alloc.h": "c"
-    }
+    },
+    "nrf5-vscode.seggerEmbeddedStudioPath": ""
 }
