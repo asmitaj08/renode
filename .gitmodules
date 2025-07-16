@@ -1,6 +1,7 @@
 [submodule "src/Infrastructure"]
 	path = src/Infrastructure
 	url = git@github.com:asmitaj08/renode-infrastructure.git
+	branch = seff-renode-infra-new
 [submodule "lib/termsharp"]
 	path = lib/termsharp
 	url = https://github.com/antmicro/termsharp.git
