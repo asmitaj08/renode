@@ -34,5 +34,28 @@ namespace Antmicro.Renode.Peripherals.SystemC
         }
 
         public override string Architecture { get { return "arm-m"; } }
+
+        // Fuzz snapshot variables for SystemCCortexMCPU
+        private RegisterValue fuzz_snap_pc;
+        private RegisterValue fuzz_snap_sp;
+
+        // Implementation of fuzz snapshot/restore for SystemCCortexMCPU
+        public override void fuzz_snap_capture()
+        {
+            Console.WriteLine("^^^^^ SystemCCortexMCPU.cs fuzz_snap_capture()");
+            
+            // Capture SystemCCortexMCPU-specific state
+            fuzz_snap_pc = PC;
+            fuzz_snap_sp = SP;
+        }
+
+        public override void fuzz_snap_restore()
+        {
+            Console.WriteLine("^^^^^ SystemCCortexMCPU.cs fuzz_snap_restore()");
+            
+            // Restore SystemCCortexMCPU-specific state
+            PC = fuzz_snap_pc;
+            SP = fuzz_snap_sp;
+        }
     }
 }

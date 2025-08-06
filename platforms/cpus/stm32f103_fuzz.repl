@@ -7,7 +7,20 @@ ram: Memory.MappedMemory @ sysbus 0x20000000
 flash: Memory.MappedMemory @ sysbus 0x00000000
     size: 0x20000000 //512 MB
 
+dma1: DMA.STM32DMA @ sysbus 0x40020000
+    [0-6] -> nvic@[11-17]
+
 adc1: Analog.STM32F103_ADC_Fuzz @ sysbus 0x40012400
+    IRQ -> nvic@18
+    DMARequest -> dma1@1
+
+adc2: Analog.STM32F103_ADC_Fuzz @ sysbus 0x40012800
+    IRQ -> nvic@18
+    DMARequest -> dma1@2
+
+adc3: Analog.STM32F103_ADC_Fuzz @ sysbus 0x40013C00
+    IRQ -> nvic@47
+    DMARequest -> dma1@3
 
 usart1: UART.STM32_UART_Fuzz @ sysbus <0x40013800, +0x100>
     -> nvic@37

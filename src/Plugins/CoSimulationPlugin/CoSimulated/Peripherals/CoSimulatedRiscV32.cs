@@ -118,5 +118,25 @@ namespace Antmicro.Renode.Peripherals.CoSimulated
         {
             this.Log(LogLevel.Warning, "RemoveAllHooks not implemented");
         }
+
+        // Fuzz snapshot variables for CoSimulatedRiscV32
+        private RegisterValue fuzz_snap_pc;
+
+        // Implementation of fuzz snapshot/restore for CoSimulatedRiscV32
+        public override void fuzz_snap_capture()
+        {
+            Console.WriteLine("^^^^^ CoSimulatedRiscV32.cs fuzz_snap_capture()");
+            
+            // Capture CoSimulatedRiscV32-specific state
+            fuzz_snap_pc = PC;
+        }
+
+        public override void fuzz_snap_restore()
+        {
+            Console.WriteLine("^^^^^ CoSimulatedRiscV32.cs fuzz_snap_restore()");
+            
+            // Restore CoSimulatedRiscV32-specific state
+            PC = fuzz_snap_pc;
+        }
     }
 }
