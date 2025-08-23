@@ -1,26 +1,26 @@
 fsmcBank1: Memory.MappedMemory @ sysbus 0x60000000
-    size: 0x10000000
-
-ram: Memory.MappedMemory @ sysbus 0x20000000
     size: 0x10000000 //256 MB
 
-flash: Memory.MappedMemory @ sysbus 0x00000000
-    size: 0x20000000 //512 MB
+ram: Memory.MappedMemory @ sysbus 0x20000000
+    size: 0x10000 //64 KB
+
+flash: Memory.MappedMemory @ sysbus 0x08000000
+    size: 0x80000 //512 KB
 
 dma1: DMA.STM32DMA @ sysbus 0x40020000
     [0-6] -> nvic@[11-17]
 
 adc1: Analog.STM32F103_ADC_Fuzz @ sysbus 0x40012400
     IRQ -> nvic@18
-    DMARequest -> dma1@1
+    DMARequest -> dma1@0
 
 adc2: Analog.STM32F103_ADC_Fuzz @ sysbus 0x40012800
     IRQ -> nvic@18
-    DMARequest -> dma1@2
+    
 
-adc3: Analog.STM32F103_ADC_Fuzz @ sysbus 0x40013C00
-    IRQ -> nvic@47
-    DMARequest -> dma1@3
+//adc3: Analog.STM32F103_ADC_Fuzz @ sysbus 0x40013C00
+//    IRQ -> nvic@47
+//    DMARequest -> dma2@4
 
 usart1: UART.STM32_UART_Fuzz @ sysbus <0x40013800, +0x100>
     -> nvic@37
@@ -93,8 +93,8 @@ gpioPortG: GPIOPort.STM32F1GPIOPort_Fuzz @ sysbus <0x40012000, +0x400>
 bitbandPeripherals: Miscellaneous.BitBanding @ sysbus <0x42000000, +0x2000000>
     peripheralBase: 0x40000000
 
-//bitbandSram: Miscellaneous.BitBanding @ sysbus <0x22000000, +0x2000000>
-//    peripheralBase: 0x20000000
+bitbandSram: Miscellaneous.BitBanding @ sysbus <0x22000000, +0x2000000>
+    peripheralBase: 0x20000000
 
 rcc: Python.PythonPeripheral @ sysbus 0x40021000
     size: 0x400
@@ -215,6 +215,7 @@ timer14: Timers.STM32_Timer @ sysbus 0x40002000
 sysbus:
     init:
         ApplySVD @https://dl.antmicro.com/projects/renode/svd/STM32F103.svd.gz
+        Tag <0x40022000, 0x40022003> "FLASH_ACR" 0x00000030
         Tag <0x40021000, 0x40021003> "RCC_CR" 0x0A020083
         // FLASH and USB tags are required for CubeMX-based projects to pass the initialization phase
         Tag <0x50000010, 0x5000003f> "USB:RESET" 0x80000000
